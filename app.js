@@ -5,6 +5,7 @@ var sysRegBackendHandler = require('./SysRegBackendHandler.js');
 var dbModel = require('DVP-DBModels');
 var nodeUuid = require('node-uuid');
 var logger = require('DVP-Common/LogHandler/CommonLogHandler.js').logger;
+var messageFormatter = require('DVP-Common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 
 var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
@@ -22,17 +23,18 @@ server.use(restify.bodyParser());
 server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetAllServices', function(req, res, next)
 {
     var reqId = nodeUuid.v1();
+    var serviceRegInfo = {};
     try
     {
         logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - HTTP Request Received', reqId);
 
-        var serviceRegInfo = {};
         sysRegBackendHandler.GetBaseServiceDetails(reqId, function (err, result)
         {
             if (err || !result)
             {
-                logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", false, serviceRegInfo);
+                logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
@@ -42,11 +44,9 @@ server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetAllServices', functio
                 {
                     if (err || !result)
                     {
-                        var jsonStr = JSON.stringify(serviceRegInfo);
-
-                        logger.debug('[DVP-MonitorRestAPI.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonStr);
-
-                        res.end(jsonStr);
+                        var jsonString = messageFormatter.FormatMessage(err, "", true, serviceRegInfo);
+                        logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                        res.end(jsonString);
                     }
                     else
                     {
@@ -56,17 +56,17 @@ server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetAllServices', functio
                         {
                             if (err || !result)
                             {
-                                var jsonStr = JSON.stringify(serviceRegInfo);
-                                logger.debug('[DVP-MonitorRestAPI.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonStr);
-                                res.end(jsonStr);
+                                var jsonString = messageFormatter.FormatMessage(err, "", true, serviceRegInfo);
+                                logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                                res.end(jsonString);
                             }
                             else
                             {
                                 serviceRegInfo.AttachedServiceInfo = result;
 
-                                var jsonStr = JSON.stringify(serviceRegInfo);
-                                logger.debug('[DVP-MonitorRestAPI.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonStr);
-                                res.end(jsonStr);
+                                var jsonString = messageFormatter.FormatMessage(err, "", true, serviceRegInfo);
+                                logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                                res.end(jsonString);
                             }
                         });
                     }
@@ -77,8 +77,9 @@ server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetAllServices', functio
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.GetAllServices] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.GetAllServices] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(err, "", true, serviceRegInfo);
+        logger.debug('[DVP-SystemRegistry.GetAllServices] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -98,22 +99,24 @@ server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetBaseServiceById/:id',
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", false, result);
+                logger.debug('[DVP-SystemRegistry.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var baseServiceInfo = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, baseServiceInfo);
-                res.end(baseServiceInfo);
+                var jsonString = messageFormatter.FormatMessage(err, "", true, result);
+                logger.debug('[DVP-SystemRegistry.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.GetBaseServiceById] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.GetBaseServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -133,22 +136,24 @@ server.get('/DVP/API/' + hostVersion + '/SystemRegistry/GetExtendedServiceById/:
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", false, result);
+                logger.debug('[DVP-SystemRegistry.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var extServiceInfo = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, extServiceInfo);
-                res.end(extServiceInfo);
+                var jsonString = messageFormatter.FormatMessage(err, "", true, result);
+                logger.debug('[DVP-SystemRegistry.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.GetExtendedServiceById] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.GetExtendedServiceById] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -168,21 +173,24 @@ server.get('/DVP/API/' + hostVersion + '/RegistryInfo/GetRegistryInfoByName/:ser
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.GetRegistryInfoByName] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", false, result);
+                logger.debug('[DVP-SystemRegistry.GetRegistryInfoByName] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var extServiceInfo = JSON.stringify(result);
-                res.end(extServiceInfo);
+                var jsonString = messageFormatter.FormatMessage(err, "", true, result);
+                logger.debug('[DVP-SystemRegistry.GetRegistryInfoByName] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.GetRegistryInfoByName] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.GetRegistryInfoByName] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.GetRegistryInfoByName] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -218,22 +226,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddBaseService', function
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.AddBaseService] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddBaseService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddBaseService] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddBaseService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddBaseService] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddBaseService] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddBaseService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -269,22 +279,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddExtendedService', func
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddExtendedService] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddExtendedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -312,22 +324,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddAttachedService', func
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddAttachedService] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddAttachedService] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -348,22 +362,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddAttachedServiceToBase/
         {
             if (err || !result)
             {
-                res.end('{}');
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, '{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddAttachedServiceToBase] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddAttachedServiceToBase] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -384,22 +400,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddAttachedServiceToExten
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddAttachedServiceToExtended] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('{}');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddAttachedServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
@@ -420,22 +438,24 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddBaseServiceToExtended/
         {
             if (err || !result)
             {
-                logger.debug('[DVP-MonitorRestAPI.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, '{}');
-                res.end('{}');
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
             else
             {
-                var rslt = JSON.stringify(result);
-                logger.debug('[DVP-MonitorRestAPI.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, rslt);
-                res.end(rslt);
+                var jsonString = messageFormatter.FormatMessage(err, "", result, undefined);
+                logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+                res.end(jsonString);
             }
         });
     }
     catch(ex)
     {
         logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - Exception occurred', reqId, ex);
-        logger.debug('[DVP-MonitorRestAPI.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, '{}');
-        res.end('');
+        var jsonString = messageFormatter.FormatMessage(ex, "", false, undefined);
+        logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - API RESPONSE : %s', reqId, jsonString);
+        res.end(jsonString);
     }
 
     return next();
