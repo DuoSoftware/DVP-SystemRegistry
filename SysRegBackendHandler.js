@@ -104,67 +104,54 @@ var AddBaseServiceToAttached = function(reqId, baseServiceId, attachedServiceId,
 {
     try
     {
-    {
-        dbModel.BaseService.find({where: [{id: baseServiceId}]})
-            .complete(function (err, baseService)
-            {
-                if(err && !baseService)
-                {
-                    if(err)
-                    {
-                        logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+        {
+            dbModel.BaseService.find({where: [{id: baseServiceId}]})
+                .complete(function (err, baseService) {
+                    if (err && !baseService) {
+                        if (err) {
+                            logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                        }
+                        else {
+                            logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                        }
+                        callback(err, false);
                     }
-                    else
-                    {
-                        logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                    else {
+                        dbModel.AttachedService.find({where: [{id: attachedServiceId}]})
+                            .complete(function (err, attService) {
+                                if (err && !attService) {
+                                    if (err) {
+                                        logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                                    }
+                                    else {
+                                        logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                                    }
+                                    callback(err, false);
+                                }
+                                else {
+                                    baseService.addAttachedService(attService).complete(function (err, result) {
+                                        if (!err) {
+                                            callback(undefined, true);
+                                        }
+                                        else {
+                                            if (err) {
+                                                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                                            }
+                                            else {
+                                                logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                                            }
+                                            callback(err, true);
+                                        }
+
+                                    });
+                                }
+
+                            });
                     }
-                    callback(err, false);
-                }
-                else
-                {
-                    dbModel.AttachedService.find({where: [{id: attachedServiceId}]})
-                        .complete(function (err, attService)
-                        {
-                            if(err && !attService)
-                            {
-                                if(err)
-                                {
-                                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                                }
-                                else
-                                {
-                                    logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                                }
-                                callback(err, false);
-                            }
-                            else
-                            {
-                                baseService.addAttachedService(attService).complete(function (err, result)
-                                {
-                                    if(!err)
-                                    {
-                                        callback(undefined, true);
-                                    }
-                                    else
-                                    {
-                                        if(err)
-                                        {
-                                            logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                                        }
-                                        else
-                                        {
-                                            logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                                        }
-                                        callback(err, true);
-                                    }
 
-                                });
-                            }
+                });
 
-                        });
-                }
-
-            });
+        }
 
     }
     catch(ex)
