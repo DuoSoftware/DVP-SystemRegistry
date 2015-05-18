@@ -369,7 +369,6 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddBaseServiceToExtended/
 
 
 
-
 server.listen(hostPort, hostIp, function () {
     console.log('%s listening at %s', server.name, server.url);
 });
