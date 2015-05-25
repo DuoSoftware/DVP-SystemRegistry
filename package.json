@@ -4,8 +4,8 @@
   "description": "System services information metadata",
   "main": "SysRegBackendHandler.js",
   "dependencies": {
-    "DVP-Common": "^0.0.0",
-    "DVP-DBModels": "^0.0.0",
+    "DVP-Common": "DuoSoftware/DVP-Common",
+    "DVP-DBModels": "DuoSoftware/DVP-DBModels",
     "config": "^1.13.0",
     "node-uuid": "^1.4.3",
     "restify": "^3.0.2",

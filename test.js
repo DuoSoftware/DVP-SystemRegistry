@@ -21,7 +21,7 @@ dbModel.Template
         }
     });
 
-/*
+
 var image = dbModel.Image.build({
 
 
@@ -34,7 +34,8 @@ var image = dbModel.Image.build({
     Class: "DOCKER",
     Type: "EXTERNAL",
     Category: "DATABASE",
-    Importance: "NONE"
+    Importance: "NONE",
+    Cmd: "postgres"
 
 
 });
@@ -83,7 +84,7 @@ template
                                 {
                                     console.log("Done");
 
-                                    template.addTemplateImage(image, { Type: 'Mandetory' });
+                                    template.addTemplateImage(image, { Type: 'Mandetory', Priority: 1 });
 
                                 }
 
@@ -105,4 +106,3 @@ template
 
     });
 
-    */

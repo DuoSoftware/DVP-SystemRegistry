@@ -478,7 +478,7 @@ server.get('/DVP/API/:version/SystemRegistry/Images', function(req, res, next){
     logger.debug("DVP-SystemRegistry.GetImages HTTP  ");
 
 
-    dbModel.Image.findAll({include: [{model: dbModel.Variable, as: "SystemVariables"}],include: [{model: dbModel.Image, as: "Dependants"}]}).complete(function (err, imageInstance) {
+    dbModel.Image.findAll({include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
 
         if (!err) {
 
@@ -520,7 +520,7 @@ server.get('/DVP/API/:version/SystemRegistry/Image/:id', function(req, res, next
     logger.debug("DVP-SystemRegistry.GetImage HTTP  ");
 
 
-    dbModel.Image.find({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Variable, as: "SystemVariables"}],include: [{model: dbModel.Image, as: "Dependants"}]}).complete(function (err, imageInstance) {
+    dbModel.Image.find({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
 
         if (!err) {
 
@@ -562,7 +562,7 @@ server.get('/DVP/API/:version/SystemRegistry/ImageByName/:name', function(req, r
     logger.debug("DVP-SystemRegistry.GetImage HTTP  ");
 
 
-    dbModel.Image.find({ where: [{Name: req.params.name}], include: [{model: dbModel.Variable, as: "SystemVariables"}], include: [{model: dbModel.Image, as: "Dependants"}]}).complete(function (err, imageInstance) {
+    dbModel.Image.find({ where: [{Name: req.params.name}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
 
         if (!err) {
 
@@ -616,7 +616,8 @@ server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next){
             Class: imageData.Class,
             Type: imageData.Type,
             Category: imageData.Category,
-            Importance: imageData.Importance
+            Importance: imageData.Importance,
+            Cmd: imageData.Cmd
 
 
         });
@@ -665,6 +666,110 @@ server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next){
 
 
 });
+
+
+server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', function(req, res, next){
+
+
+    logger.debug("DVP-SystemRegistry.AddService HTTP");
+
+    var variableData=req.body;
+    var imageName = req.params.imageName;
+    var status = false;
+
+
+    if(variableData){
+
+        dbModel.Image.find({where: [{ Name: imageName}]}).complete(function(err, imageInstance) {
+            if(!err && imageInstance) {
+                logger.debug("DVP-SystemRegistry.AddService image Found ");
+
+                var serviceInstance = dbModel.Service.build(
+                    {
+                        Name: variableData.Name,
+                        Description: variableData.Description,
+                        Class: variableData.Class,
+                        Type: variableData.Type,
+                        Category: variableData.Category,
+                        CompanyId: variableData.CompanyId,
+                        TenantId: variableData.TenantId,
+                        MultiPorts: variableData.MultiPorts,
+                        Direction: variableData.Direction,
+                        Protocol: variableData.Protocol,
+                        DefaultStartPort: variableData.Port
+                    }
+                )
+
+
+                serviceInstance
+                    .save()
+                    .complete(function (err) {
+
+                        if (!err) {
+
+
+                            logger.debug("DVP-SystemRegistry.AddService Service Saved ");
+
+                            imageInstance.addServices(serviceInstance).complete(function (errx, cloudInstancex) {
+
+                                logger.debug("DVP-SystemRegistry.AddService Service Set Image");
+
+                                if(!errx) {
+
+                                    status = true;
+                                    var instance = msg.FormatMessage(undefined, "Add Service", status, undefined);
+                                    res.write(instance);
+                                    res.end();
+
+                                }else{
+
+                                    var instance = msg.FormatMessage(errx, "Add Service failed", status, undefined);
+                                    res.write(instance);
+                                    res.end();
+
+                                }
+
+
+                            });
+
+
+                        } else {
+
+                            var instance = msg.FormatMessage(err, "Add Service", status, undefined);
+                            res.write(instance);
+
+                            logger.error("DVP-SystemRegistry.AddService Service Save Failed ",err);
+
+                        }
+                    }
+                )
+            }
+            else
+            {
+                logger.error("DVP-SystemRegistry.AddService Image NotFound ");
+                var instance = msg.FormatMessage(undefined, "Add AddService failed no image", status, undefined);
+                res.write(instance);
+                res.end();
+
+            }
+
+        })
+
+
+    }
+    else{
+
+        var instance = msg.FormatMessage(undefined, "Add Variable", status, undefined);
+        res.write(instance);
+        res.end();
+        logger.debug("DVP-SystemRegistry.AddService Object Validation Failed ");
+
+    }
+
+    return next();
+
+});
+
 
 server.put('/DVP/API/:version/SystemRegistry/Image/:name', function(req, res, next){});
 
@@ -772,7 +877,7 @@ server.get('/DVP/API/:version/SystemRegistry/Templates', function(req, res, next
     logger.debug("DVP-SystemRegistry.GetTemplates HTTP  ");
 
 
-    dbModel.Template.findAll({include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"}],include: [{model: dbModel.Image, as: "Dependants"}]}]}).complete(function (err, templateInstance) {
+    dbModel.Template.findAll({include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
 
         if (!err) {
 
@@ -816,7 +921,7 @@ server.get('/DVP/API/:version/SystemRegistry/Template/:id', function(req, res, n
     logger.debug("DVP-SystemRegistry.GetTemplate HTTP  ");
 
 
-    dbModel.Template.findAll({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Image, as: "TemplateImage",include: [{model: dbModel.Variable, as: "SystemVariables"}],include: [{model: dbModel.Image, as: "Dependants"}]}]}).complete(function (err, templateInstance) {
+    dbModel.Template.findAll({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Image, as: "TemplateImage",include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
 
         if (!err) {
 
@@ -858,8 +963,9 @@ server.get('/DVP/API/:version/SystemRegistry/TemplateByName/:name', function(req
     logger.debug("DVP-SystemRegistry.GetTemplate HTTP  ");
 
 
-    dbModel.Template.findAll({ where: [{Name: req.params.name}], include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"}], include: [{model: dbModel.Image, as: "Dependants"}]}]}).complete(function (err, templateInstance) {
+    dbModel.Template.findAll({ where: [{Name: req.params.name}], include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
 
+        //, include: []
         if (!err) {
 
 
@@ -982,13 +1088,13 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateName/AddBaseImag
             logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
 
 
-            dbModel.Image.find({where: [{Name: imageName}, {Activate: true}]}).complete(function (err, imageInstance) {
+            dbModel.Image.find({where: [{Name: imageName}]}).complete(function (err, imageInstance) {
 
                 if (!err && imageInstance) {
 
                     logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found ", imageName);
 
-                    templateInstance.addTemplateImage(image, { Type: 'Mandetory', Priority: parseInt(pririty) }).complete(function (errx, cloudInstancex) {
+                    templateInstance.addTemplateImage(imageInstance, { Type: 'Mandetory', Priority: parseInt(pririty) }).complete(function (errx, cloudInstancex) {
 
                         logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
 
@@ -1010,7 +1116,7 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateName/AddBaseImag
 
                 } else {
 
-                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL Cloud %s NotFound", cloudID, err);
+                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
 
                     var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
                     res.write(instance);
@@ -1023,7 +1129,7 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateName/AddBaseImag
 
         } else {
 
-            logger.debug("DVP-SystemRegistry.AddCallServerToCloud PGSQL CallServer %s NotFound %j", Id, err);
+            logger.err("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
 
             var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
             res.write(instance);
@@ -1053,13 +1159,13 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalIm
             logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
 
 
-            dbModel.Image.find({where: [{Name: imageName}, {Activate: true}]}).complete(function (err, imageInstance) {
+            dbModel.Image.find({where: [{Name: imageName}]}).complete(function (err, imageInstance) {
 
                 if (!err && imageInstance) {
 
                     logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found", imageName);
 
-                    templateInstance.addTemplateImage(image, { Type: 'Optional', Priority: parseInt(pririty)}).complete(function (errx, cloudInstancex) {
+                    templateInstance.addTemplateImage(imageInstance, { Type: 'Optional', Priority: parseInt(pririty)}).complete(function (errx, cloudInstancex) {
 
                         logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
 
@@ -1081,7 +1187,7 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalIm
 
                 } else {
 
-                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL Cloud %s NotFound", cloudID, err);
+                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
 
                     var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
                     res.write(instance);
@@ -1094,7 +1200,7 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalIm
 
         } else {
 
-            logger.debug("DVP-SystemRegistry.AddCallServerToCloud PGSQL CallServer %s NotFound %j", Id, err);
+            logger.error("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
 
             var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
             res.write(instance);
