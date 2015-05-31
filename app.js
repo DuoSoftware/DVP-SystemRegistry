@@ -667,7 +667,6 @@ server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next){
 
 });
 
-
 server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', function(req, res, next){
 
 
@@ -765,6 +764,90 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', functio
         logger.debug("DVP-SystemRegistry.AddService Object Validation Failed ");
 
     }
+
+    return next();
+
+});
+
+
+server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependImageName', function(req, res, next){
+
+
+    logger.debug("DVP-SystemRegistry.ImageDependsOn HTTP");
+
+
+    var imageName = req.params.imageName;
+    var dependimage = req.params.dependImageName;
+    var status = false;
+
+
+
+        dbModel.Image.find({where: [{ Name: imageName}]}).complete(function(err, imageInstance) {
+            if(!err && imageInstance) {
+                logger.debug("DVP-SystemRegistry.ImageDependsOn image Found ");
+
+                dbModel.Image.find({where: [{ Name: dependimage}]}).complete(function(err, depimageInstance) {
+                        if(!err && dependimage) {
+
+
+                            if(imageInstance && depimageInstance) {
+                                logger.debug("DVP-SystemRegistry.ImageDependsOn Service Saved ");
+
+                                imageInstance.addDependants(depimageInstance,{ DependentID : depimageInstance.Id}).complete(function (errx, depimageInstancex) {
+
+                                    logger.debug("DVP-SystemRegistry.ImageDependsOn Service Set Image");
+
+                                    if (!errx) {
+
+                                        status = true;
+                                        var instance = msg.FormatMessage(undefined, "Add Image", status, undefined);
+                                        res.write(instance);
+                                        res.end();
+
+                                    } else {
+
+                                        var instance = msg.FormatMessage(errx, "Add Image failed", status, undefined);
+                                        res.write(instance);
+                                        res.end();
+
+                                    }
+
+
+                                });
+                            }else{
+                                var instance = msg.FormatMessage(err, "Add Image", status, undefined);
+                                res.write(instance);
+
+                                logger.error("DVP-SystemRegistry.ImageDependsOn one of the image not found ",err);
+
+
+
+
+                            }
+
+
+                        } else {
+
+                            var instance = msg.FormatMessage(err, "Add Image", status, undefined);
+                            res.write(instance);
+
+                            logger.error("DVP-SystemRegistry.ImageDependsOn Service Save Failed ",err);
+
+                        }
+                    }
+                )
+            }
+            else
+            {
+                logger.error("DVP-SystemRegistry.ImageDependsOn Image NotFound ");
+                var instance = msg.FormatMessage(undefined, "Add Image failed no image", status, undefined);
+                res.write(instance);
+                res.end();
+
+            }
+
+        })
+
 
     return next();
 
