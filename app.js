@@ -20,6 +20,11 @@ var server = restify.createServer({
     version: '1.0.0'
 });
 
+
+restify.CORS.ALLOW_HEADERS.push('authorization');
+server.use(restify.CORS());
+server.use(restify.fullResponse());
+
 server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
