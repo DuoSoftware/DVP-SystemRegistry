@@ -1353,33 +1353,34 @@ server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next){
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.GetClusterByToken HTTP  ");
 
 
-    dbModel.SwarmCluster.findAll.({where: [{Token: req.params.token}],include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}]}).complete(function (err, templateInstance) {
+    dbModel.SwarmCluster.find({where: {Token: req.params.token}, include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}]}).complete(function (err, templateInstance) {
 
         //, include: []
-        if (!err) {
-
-
+        if (!err)
+        {
 
             try {
-
 
                 logger.debug("DVP-SystemRegistry.GetClusterByToken %s Found",req.params.token);
 
                 var instance = msg.FormatMessage(undefined, "Get ClusterByToken done", true, templateInstance);
                 res.write(instance);
 
-            } catch(exp) {
-
-
+            }
+            catch(exp)
+            {
 
             }
 
-        } else {
+        }
+        else
+        {
 
             logger.error("DVP-SystemRegistry.GetClusterByToken Failed", err);
 
@@ -1403,27 +1404,24 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
 
         var cluster = dbModel.SwarmCluster.build({
 
-
             Name:  templateData.Name,
             Token:  templateData.Token,
             Code: templateData.Code,
             Company: 1,
-            Tenant:3,
+            Tenant:1,
             Class: templateData.Class,
             Type: templateData.Type,
             Category: templateData.Category,
             LBDomain:templateData.Domain
 
-
-
         });
-
 
         cluster.save()
             .complete(function (err) {
                 try {
 
-                    if (err) {
+                    if (err)
+                    {
                         logger.error("DVP-SystemRegistry.CreateCluster PGSQL save failed ", err);
 
                         var instance = msg.FormatMessage(err,"Store Cluster Failed", status,undefined);
@@ -1432,7 +1430,8 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
 
 
                     }
-                    else {
+                    else
+                    {
                         logger.debug('DVP-SystemRegistry.CreateCluster PGSQL Cluster object saved successful ');
                         status = true;
 
@@ -1442,13 +1441,17 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
                     }
 
                 }
-                catch (ex) {
+                catch (ex)
+                {
                     logger.error("DVP-SystemRegistry.CreateCluster failed ", ex);
+                    var instance = msg.FormatMessage(ex,"Store Cluster Error", status,undefined);
+                    res.write(instance);
                     res.end();
                 }
 
             });
-    }else{
+    }
+    else{
 
         logger.error("DVP-SystemRegistry.Createcluster Object Validation Failed");
         var instance = msg.FormatMessage(undefined,"Store cluster Object Validation Failed", status,undefined);
@@ -1476,17 +1479,18 @@ server.get('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
 
     dbModel.SwarmNode.findAll({include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}).complete(function (err, node) {
 
-        if (!err) {
-
-            try {
-
+        if (!err)
+        {
+            try
+            {
 
                 logger.debug("DVP-SystemRegistry.GetNode Found ");
 
                 var instance = msg.FormatMessage(undefined, "Get GetNode done", true, node);
                 res.write(instance);
 
-            } catch(exp) {
+            }
+            catch(exp) {
 
 
                 logger.error("DVP-SystemRegistry.GetNode Failed", exp);
@@ -1551,7 +1555,8 @@ server.get('/DVP/API/:version/SystemRegistry/NodeByName/:name', function(req, re
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
+server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistr.AddNode HTTP");
 
@@ -1559,42 +1564,37 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
     var status = false;
     if(node){
 
-        dbmodel.SwarmCluster.find({where: [{ Token: node.ClusterToken}]}).complete(function(err, cluster) {
+        dbModel.SwarmCluster.find({where: [{ Token: node.ClusterToken}]}).complete(function(err, cluster) {
             if(!err && cluster) {
-                logger.debug("DVP-SystemRegistr.AddNode cluster Found ",cluster);
+                logger.debug("DVP-SystemRegistr.AddNode cluster Found ");
 
-                var node = dbModel.SwarmNode.build({
-
-
-
-                    Name: templateData.Name,
-                    Code: templateData.Code,
+                var nodeInf = dbModel.SwarmNode.build({
+                    UniqueId: node.UniqueId,
+                    Name: node.Name,
+                    Code: node.Code,
                     Company: 1,
-                    Tenant: 3,
-                    Class: templateData.Class,
-                    Type: templateData.Type,
-                    Category: templateData.Category,
-                    MainIP: templateData.MainIP,
-                    Domain: templateData.Domain,
-                    RemotePort: templateData.RemotePort,
-                    HostDomain: templateData.HostDomain
-
-
-
-
+                    Tenant: 1,
+                    Class: node.Class,
+                    Type: node.Type,
+                    Category: node.Category,
+                    MainIP: node.MainIP,
+                    Domain: node.Domain,
+                    RemotePort: node.RemotePort,
+                    HostDomain: node.HostDomain
 
                 });
 
-                node
+                nodeInf
                     .save()
                     .complete(function (err) {
 
                         if (!err) {
 
 
-                            logger.debug("DVP-SystemRegistr.AddNode node Saved ",node);
+                            logger.debug("DVP-SystemRegistr.AddNode node Saved ");
 
-                            cluster.setSwarmNode(node).complete(function (errx, clusterInstancex) {
+                            cluster.addSwarmNode(nodeInf).complete(function (errx, clusterInstancex)
+                            {
 
                                 logger.debug("DVP-SystemRegistr.AddNode Node Set cluster");
 
@@ -1608,7 +1608,9 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
                             });
 
 
-                        } else {
+                        }
+                        else
+                        {
 
                             var instance = msg.FormatMessage(err, "Add Node", status, undefined);
                             res.write(instance);
@@ -1632,7 +1634,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
 
 
     }
-    else{
+    else
+    {
 
         var instance = msg.FormatMessage(undefined, "Add Node", status, undefined);
         res.write(instance);
@@ -1645,7 +1648,10 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
 
 });
 
-server.put('/DVP/API/:version/SystemRegistry/Node/:name', function(req, res, next){});
+server.put('/DVP/API/:version/SystemRegistry/Node/:name', function(req, res, next)
+{
+
+});
 
 server.del('/DVP/API/:version/SystemRegistry/Node/:name', function(req, res, next){});
 
@@ -1734,29 +1740,33 @@ server.get('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, re
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next){
+server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistr.AddInstance HTTP");
 
-    var node=req.body;
+    var instanceInfo = req.body;
     var status = false;
-    if(node){
 
-        dbmodel.SwarmNode.find({where: [{ Name: node.NodeName}]}).complete(function(err, node) {
-            if(!err && cluster) {
-                logger.debug("DVP-SystemRegistr.AddInstance node Found ",node);
+    if(instanceInfo)
+    {
+
+        dbModel.SwarmNode.find({where: [{ UniqueId: instanceInfo.SwarmNodeUuid}]}).complete(function(err, nodeInfo)
+        {
+            if(!err && nodeInfo)
+            {
+                logger.debug("DVP-SystemRegistr.AddInstance node Found");
 
                 var inst = dbModel.SwarmDockerInstance.build({
-
-                    Name: templateData.Name,
-                    ParentApp: templateData.ParentAPP,
-                    UUID: templateData.UUID,
-                    Code: templateData.Code,
+                    Name: instanceInfo.Name,
+                    ParentApp: instanceInfo.ParentAPP,
+                    UUID: instanceInfo.UUID,
+                    Code: instanceInfo.Code,
                     Company: 1,
-                    Tenant: 3,
-                    Class: templateData.Class,
-                    Type: templateData.Type,
-                    Category: templateData.Category
+                    Tenant: 1,
+                    Class: instanceInfo.Class,
+                    Type: instanceInfo.Type,
+                    Category: instanceInfo.Category
 
                 });
 
@@ -1764,12 +1774,13 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                     .save()
                     .complete(function (err) {
 
-                        if (!err) {
+                        if (!err)
+                        {
 
+                            logger.debug("DVP-SystemRegistr.AddInstance instance Saved ");
 
-                            logger.debug("DVP-SystemRegistr.AddInstance instance Saved ",node);
-
-                            node.setSwarmDockerInstance(node).complete(function (errx, instancex) {
+                            nodeInfo.addSwarmDockerInstance(inst).complete(function (er, rslt)
+                            {
 
                                 logger.debug("DVP-SystemRegistr.AddInstance Instance Set node");
 
@@ -1783,10 +1794,13 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                             });
 
 
-                        } else {
+                        }
+                        else
+                        {
 
-                            var instance = msg.FormatMessage(err, "Add Instance", status, undefined);
+                            var instance = msg.FormatMessage(err, "Add Instance Failed", status, undefined);
                             res.write(instance);
+                            res.end();
 
                             logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
 
@@ -1807,12 +1821,14 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
 
 
     }
-    else{
+    else
+    {
 
-        var instance = msg.FormatMessage(undefined, "Add Instance", status, undefined);
+        logger.debug("DVP-SystemRegistr.AddInstance Instance info not supplied ");
+
+        var instance = msg.FormatMessage(undefined, "Empty Body", status, undefined);
         res.write(instance);
         res.end();
-        logger.debug("DVP-SystemRegistr.AddInstance Object Validation Failed ");
 
     }
 
