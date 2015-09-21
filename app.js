@@ -1078,6 +1078,8 @@ server.get('/DVP/API/:version/SystemRegistry/TemplateByName/:name', function(req
             res.write(instance);
         }
 
+        logger.debug('DVP-SystemRegistry.GetTemplateByName - Retuned : ', JSON.stringify(instance))
+
         res.end();
 
     });
@@ -1412,7 +1414,8 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
             Class: templateData.Class,
             Type: templateData.Type,
             Category: templateData.Category,
-            LBDomain:templateData.Domain
+            LBDomain:templateData.Domain,
+            LBIP:templateData.LBIP
 
         });
 
@@ -1835,6 +1838,76 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
     return next();
 
 
+});
+
+server.del('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, res, next)
+{
+    try
+    {
+        var instanceId = req.params.id;
+
+        logger.debug('[DVP-SystemRegistry.DeleteInstanceByID] - HTTP Request Received - Req Params - InstanceId : %s', instanceId);
+
+        if(instanceId)
+        {
+            dbModel.SwarmDockerInstance.find({where: [{UUID: instanceId}]}).then(function (instance)
+            {
+                if (instance)
+                {
+                    logger.debug("[DVP-SystemRegistry.DeleteInstanceByID] - Instance found");
+
+                    instance.destroy().then(function (result)
+                    {
+
+                            logger.debug("[DVP-SystemRegistry.DeleteInstanceByID] - Instance deleted successfully");
+
+                            var respRes = msg.FormatMessage(undefined, "Instance deleted successfully", true, result);
+                            res.end(respRes);
+
+                    }).catch(function(err)
+                    {
+                        logger.error("[DVP-SystemRegistry.DeleteInstanceByID] - Error deleting", err);
+
+                        var respRes = msg.FormatMessage(err, "Instance delete error", false, undefined);
+                        res.end(respRes);
+                    });
+                }
+                else
+                {
+                    logger.warn("[DVP-SystemRegistry.DeleteInstanceByID] - Instance with id not found");
+
+                    var respRes = msg.FormatMessage(new Error("Instance with id not found"), "Instance with id not found", false, undefined);
+                    res.end(respRes);
+                }
+
+            }).catch(function(err)
+            {
+                logger.error("[DVP-SystemRegistry.DeleteInstanceByID] - Error getting instance", err);
+
+                var respRes = msg.FormatMessage(err, "Error getting instance", false, undefined);
+                res.end(respRes);
+            })
+
+        }
+        else
+        {
+            logger.warn("[DVP-SystemRegistry.DeleteInstanceByID] - Instance with id not found");
+
+            var respRes = msg.FormatMessage(new Error("Instance id not provided"), "Instance id not provided", false, undefined);
+            res.end(respRes);
+
+        }
+
+    }
+    catch(ex)
+    {
+        logger.error("[DVP-SystemRegistry.DeleteInstanceByID] - Exception occurred", ex);
+
+        var respRes = msg.FormatMessage(ex, "Exception occurred", false, undefined);
+        res.end(respRes);
+
+    }
+    return next();
 });
 
 server.put('/DVP/API/:version/SystemRegistry/Instance/:id', function(req, res, next){});
