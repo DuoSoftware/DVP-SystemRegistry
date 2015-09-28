@@ -8,12 +8,16 @@ var logger = require('DVP-Common/LogHandler/CommonLogHandler.js').logger;
 var msg = require('DVP-Common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 var messageFormatter = require('DVP-Common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 var sre = require('swagger-restify-express');
-
+var mongoose = require('mongoose');
+var underscore = require('underscore');
 
 
 var hostIp = config.Host.Ip;
 var hostPort = config.Host.Port;
 var hostVersion = config.Host.Version;
+
+var mongoDbIp = config.MongoDB.Ip;
+var mongoDbDb = config.MongoDB.Database;
 
 var server = restify.createServer({
     name: 'localhost',
@@ -28,6 +32,14 @@ server.use(restify.fullResponse());
 server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
+
+var mongoUrl = 'mongodb://' + mongoDbIp + '/' + mongoDbDb;
+
+var conn = mongoose.connect(mongoUrl);
+
+var schema = new mongoose.Schema({UUID: {type: String}}, { strict: false });
+
+var Model = mongoose.model('SwarmNode', schema);
 
 /*
 
@@ -478,84 +490,63 @@ server.post('/DVP/API/' + hostVersion + '/RegistryInfo/AddBaseServiceToExtended/
 */
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-server.get('/DVP/API/:version/SystemRegistry/Images', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Images', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.GetImages HTTP  ");
 
+    var tempArr = [];
 
-    dbModel.Image.findAll({include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
+    dbModel.Image.findAll({include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]})
+        .then(function (imageInstance)
+        {
+            logger.debug("DVP-SystemRegistry.GetImages Found ");
 
-        if (!err) {
+            var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
+            res.write(instance);
 
+            res.end();
 
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetImages Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetImages Failed", err);
 
-            var instance = msg.FormatMessage(err, "Get Images failed", false, undefined);
+            var instance = msg.FormatMessage(err, "Get Images failed", false, tempArr);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
 
     return next();
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/Image/:id', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Image/:id', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.GetImage HTTP  ");
 
+    dbModel.Image.find({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]})
+        .then(function (imageInstance)
+        {
 
-    dbModel.Image.find({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
+            logger.debug("DVP-SystemRegistry.GetImages Found ");
 
-        if (!err) {
+            var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
+            res.write(instance);
 
+            res.end();
 
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetImages Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetImages Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Images failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
@@ -564,53 +555,40 @@ server.get('/DVP/API/:version/SystemRegistry/Image/:id', function(req, res, next
 
 server.get('/DVP/API/:version/SystemRegistry/ImageByName/:name', function(req, res, next){
 
-    logger.debug("DVP-SystemRegistry.GetImage HTTP  ");
+    logger.debug("DVP-SystemRegistry.GetImageByName HTTP  ");
 
+    dbModel.Image.find({ where: [{Name: req.params.name}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]})
+        .then(function (imageInstance)
+        {
+            logger.debug("DVP-SystemRegistry.GetImages Found ");
 
-    dbModel.Image.find({ where: [{Name: req.params.name}], include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}).complete(function (err, imageInstance) {
+            var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
+            res.write(instance);
 
-        if (!err) {
+            res.end();
 
-
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetImages Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get Images done", true, imageInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetImages Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Images failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next){
-
+server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next)
+{
     var imageData=req.body;
     var status = false;
-    if(imageData) {
 
+    if(imageData)
+    {
         var image = dbModel.Image.build({
-
 
             Name: imageData.Name,
             Description: imageData.Description,
@@ -624,129 +602,107 @@ server.post('/DVP/API/:version/SystemRegistry/Image', function(req, res, next){
             Importance: imageData.Importance,
             Cmd: imageData.Cmd
 
-
         });
-
 
         image
             .save()
-            .complete(function (err) {
-                try {
+            .then(function (rslt)
+            {
+                logger.debug('DVP-SystemRegistry.CteateImage PGSQL Cloud object saved successful ');
+                status = true;
 
-                    if (err) {
-                        logger.error("DVP-SystemRegistry.CteateImage PGSQL save failed ", err);
+                var instance = msg.FormatMessage(undefined,"Store Image Done", status, rslt);
+                res.write(instance);
+                res.end();
 
-                        var instance = msg.FormatMessage(err,"Store Image Failed", status,undefined);
-                        res.write(instance);
-                        res.end();
+            })
+            .catch(function(err)
+            {
+                logger.error("DVP-SystemRegistry.CteateImage PGSQL save failed ", err);
 
-
-                    }
-                    else {
-                        logger.debug('DVP-SystemRegistry.CteateImage PGSQL Cloud object saved successful ');
-                        status = true;
-
-                        var instance = msg.FormatMessage(undefined,"Store Image Done", status,undefined);
-                        res.write(instance);
-                        res.end();
-                    }
-
-                }
-                catch (ex) {
-                    logger.error("DVP-SystemRegistry.CteateImage failed ", ex);
-
-                }
-
+                var instance = msg.FormatMessage(err,"Store Image Failed", status, undefined);
+                res.write(instance);
+                res.end();
             });
-    }else{
+    }
+    else
+    {
 
         logger.error("DVP-SystemRegistry.CteateImage Object Validation Failed");
-        var instance = msg.FormatMessage(undefined,"Store Image Object Validation Failed", status,undefined);
+        var instance = msg.FormatMessage(undefined,"Store Image Object Validation Failed", status, undefined);
         res.write(instance);
         res.end();
     }
 
-
     return next();
-
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', function(req, res, next){
-
-
+server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', function(req, res, next)
+{
     logger.debug("DVP-SystemRegistry.AddService HTTP");
 
-    var variableData=req.body;
+    var variableData = req.body;
     var imageName = req.params.imageName;
     var status = false;
 
+    if(variableData)
+    {
+        dbModel.Image.find({where: [{ Name: imageName}]})
+            .then(function(imageInstance)
+            {
+                if(imageInstance)
+                {
+                    logger.debug("DVP-SystemRegistry.AddService image Found ");
 
-    if(variableData){
-
-        dbModel.Image.find({where: [{ Name: imageName}]}).complete(function(err, imageInstance) {
-            if(!err && imageInstance) {
-                logger.debug("DVP-SystemRegistry.AddService image Found ");
-
-                var serviceInstance = dbModel.Service.build(
-                    {
-                        Name: variableData.Name,
-                        Description: variableData.Description,
-                        Class: variableData.Class,
-                        Type: variableData.Type,
-                        Category: variableData.Category,
-                        CompanyId: variableData.CompanyId,
-                        TenantId: variableData.TenantId,
-                        MultiPorts: variableData.MultiPorts,
-                        Direction: variableData.Direction,
-                        Protocol: variableData.Protocol,
-                        DefaultStartPort: variableData.Port
-                    }
-                )
+                    var serviceInstance = dbModel.Service.build(
+                        {
+                            Name: variableData.Name,
+                            Description: variableData.Description,
+                            Class: variableData.Class,
+                            Type: variableData.Type,
+                            Category: variableData.Category,
+                            CompanyId: variableData.CompanyId,
+                            TenantId: variableData.TenantId,
+                            MultiPorts: variableData.MultiPorts,
+                            Direction: variableData.Direction,
+                            Protocol: variableData.Protocol,
+                            DefaultStartPort: variableData.Port
+                        })
 
 
-                serviceInstance
-                    .save()
-                    .complete(function (err) {
-
-                        if (!err) {
-
+                    serviceInstance
+                        .save()
+                        .then(function (rslt)
+                        {
 
                             logger.debug("DVP-SystemRegistry.AddService Service Saved ");
 
-                            imageInstance.addServices(serviceInstance).complete(function (errx, cloudInstancex) {
-
-                                logger.debug("DVP-SystemRegistry.AddService Service Set Image");
-
-                                if(!errx) {
+                            imageInstance.addServices(serviceInstance)
+                                .then(function (cloudInstancex)
+                                {
+                                    logger.debug("DVP-SystemRegistry.AddService Service Set Image");
 
                                     status = true;
-                                    var instance = msg.FormatMessage(undefined, "Add Service", status, undefined);
+                                    var instance = msg.FormatMessage(undefined, "Add Service", status, cloudInstancex);
                                     res.write(instance);
                                     res.end();
 
-                                }else{
-
-                                    var instance = msg.FormatMessage(errx, "Add Service failed", status, undefined);
+                                })
+                                .catch(function(err)
+                                {
+                                    var instance = msg.FormatMessage(err, "Add Service failed", status, undefined);
                                     res.write(instance);
                                     res.end();
-
-                                }
-
-
-                            });
-
-
-                        } else {
-
+                                });
+                        })
+                        .catch(function(err)
+                        {
+                            logger.error("DVP-SystemRegistry.AddService Service Save Failed ", err);
                             var instance = msg.FormatMessage(err, "Add Service", status, undefined);
                             res.write(instance);
-
-                            logger.error("DVP-SystemRegistry.AddService Service Save Failed ",err);
-
-                        }
-                    }
-                )
+                            res.end();
+                        })
             }
             else
             {
@@ -758,15 +714,21 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', functio
             }
 
         })
-
+        .catch(function(err)
+        {
+            logger.error("DVP-SystemRegistry.AddService Service Save Failed ", err);
+            var instance = msg.FormatMessage(err, "Add Service", status, undefined);
+            res.write(instance);
+            res.end();
+        })
 
     }
-    else{
-
-        var instance = msg.FormatMessage(undefined, "Add Variable", status, undefined);
+    else
+    {
+        logger.debug("DVP-SystemRegistry.AddService Object Validation Failed");
+        var instance = msg.FormatMessage(new Error('Variable data not provided'), "Variable data not provided", status, undefined);
         res.write(instance);
         res.end();
-        logger.debug("DVP-SystemRegistry.AddService Object Validation Failed ");
 
     }
 
@@ -774,72 +736,61 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Service', functio
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependImageName', function(req, res, next){
-
-
+server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependImageName', function(req, res, next)
+{
     logger.debug("DVP-SystemRegistry.ImageDependsOn HTTP");
-
 
     var imageName = req.params.imageName;
     var dependimage = req.params.dependImageName;
     var status = false;
 
-
-
-        dbModel.Image.find({where: [{ Name: imageName}]}).complete(function(err, imageInstance) {
-            if(!err && imageInstance) {
+    dbModel.Image.find({where: [{ Name: imageName}]})
+        .then(function(imageInstance)
+        {
+            if (imageInstance)
+            {
                 logger.debug("DVP-SystemRegistry.ImageDependsOn image Found ");
 
-                dbModel.Image.find({where: [{ Name: dependimage}]}).complete(function(err, depimageInstance) {
-                        if(!err && dependimage) {
-
-
-                            if(imageInstance && depimageInstance) {
+                dbModel.Image.find({where: [{Name: dependimage}]})
+                    .then(function (depimageInstance)
+                    {
+                            if (depimageInstance)
+                            {
                                 logger.debug("DVP-SystemRegistry.ImageDependsOn Service Saved ");
 
-                                imageInstance.addDependants(depimageInstance,{ DependentID : depimageInstance.Id}).complete(function (errx, depimageInstancex) {
-
-                                    logger.debug("DVP-SystemRegistry.ImageDependsOn Service Set Image");
-
-                                    if (!errx) {
+                                imageInstance.addDependants(depimageInstance, {DependentID: depimageInstance.Id})
+                                    .then(function (depimageInstancex)
+                                    {
+                                        logger.debug("DVP-SystemRegistry.ImageDependsOn Service Set Image");
 
                                         status = true;
-                                        var instance = msg.FormatMessage(undefined, "Add Image", status, undefined);
+                                        var instance = msg.FormatMessage(undefined, "Add Image", status, depimageInstancex);
                                         res.write(instance);
                                         res.end();
 
-                                    } else {
-
-                                        var instance = msg.FormatMessage(errx, "Add Image failed", status, undefined);
+                                    })
+                                    .catch(function(err)
+                                    {
+                                        var instance = msg.FormatMessage(err, "Add Image failed", status, undefined);
                                         res.write(instance);
                                         res.end();
-
-                                    }
-
-
-                                });
-                            }else{
+                                    });
+                            }
+                            else
+                            {
                                 var instance = msg.FormatMessage(err, "Add Image", status, undefined);
                                 res.write(instance);
 
-                                logger.error("DVP-SystemRegistry.ImageDependsOn one of the image not found ",err);
-
-
-
+                                logger.error("DVP-SystemRegistry.ImageDependsOn one of the image not found ", err);
 
                             }
-
-
-                        } else {
-
-                            var instance = msg.FormatMessage(err, "Add Image", status, undefined);
-                            res.write(instance);
-
-                            logger.error("DVP-SystemRegistry.ImageDependsOn Service Save Failed ",err);
-
-                        }
-                    }
-                )
+                    })
+                    .catch(function(err)
+                    {
+                        var instance = msg.FormatMessage(err, "Add Image failed", status, undefined);
+                        res.write(instance);
+                        res.end();
+                    })
             }
             else
             {
@@ -850,7 +801,13 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependI
 
             }
 
-        })
+    })
+    .catch(function(err)
+    {
+        var instance = msg.FormatMessage(err, "Add Image failed", status, undefined);
+        res.write(instance);
+        res.end();
+    })
 
 
     return next();
@@ -861,8 +818,8 @@ server.put('/DVP/API/:version/SystemRegistry/Image/:name', function(req, res, ne
 
 server.del('/DVP/API/:version/SystemRegistry/Image/:name', function(req, res, next){});
 
-server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Variable', function(req, res, next){
-
+server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Variable', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.AddVariable HTTP");
 
@@ -870,82 +827,77 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Variable', functi
     var imageName = req.params.imageName;
     var status = false;
 
+    if(variableData)
+    {
+        dbModel.Image.find({where: [{ Name: imageName}]})
+            .then(function(imageInstance)
+            {
+                if(imageInstance)
+                {
+                    logger.debug("DVP-SystemRegistry.AddVariable Cloud Found ");
 
-    if(variableData){
+                    var variableInstance = dbModel.Variable.build(
+                        {
+                            Name: variableData.Name,
+                            Description: variableData.Description,
+                            DefaultValue: variableData.DefaultValue,
+                            Export: variableData.Export,
+                            Type: variableData.Type
+                        })
 
-        dbModel.Image.find({where: [{ Name: imageName}]}).complete(function(err, imageInstance) {
-            if(!err && imageInstance) {
-                logger.debug("DVP-SystemRegistry.AddVariable Cloud Found ");
-
-                var variableInstance = dbModel.Variable.build(
-                    {
-                        Name: variableData.Name,
-                        Description: variableData.Description,
-                        DefaultValue: variableData.DefaultValue,
-                        Export: variableData.Export,
-                        Type: variableData.Type
-                    }
-                )
-
-
-                variableInstance
-                    .save()
-                    .complete(function (err) {
-
-                        if (!err) {
-
-
+                    variableInstance
+                        .save()
+                        .then(function (rslt)
+                        {
                             logger.debug("DVP-SystemRegistry.AddVariable Variable Saved ");
 
-                            imageInstance.addSystemVariables(variableInstance).complete(function (errx, cloudInstancex) {
-
-                                logger.debug("DVP-SystemRegistry.AddVariable Variable Set Image");
-
-                                if(!errx) {
+                            imageInstance.addSystemVariables(variableInstance)
+                                .then(function (cloudInstancex)
+                                {
+                                    logger.debug("DVP-SystemRegistry.AddVariable Variable Set Image");
 
                                     status = true;
-                                    var instance = msg.FormatMessage(undefined, "Add Variable", status, undefined);
+                                    var instance = msg.FormatMessage(undefined, "Add Variable", status, cloudInstancex);
                                     res.write(instance);
                                     res.end();
 
-                                }else{
-
-                                    var instance = msg.FormatMessage(errx, "Add Variable failed", status, undefined);
+                                })
+                                .catch(function(err)
+                                {
+                                    var instance = msg.FormatMessage(err, "Add Variable failed", status, undefined);
                                     res.write(instance);
                                     res.end();
-
-                                }
-
-
-                            });
-
-
-                        } else {
-
+                                });
+                        })
+                        .catch(function(err)
+                        {
+                            logger.error("DVP-SystemRegistry.AddVariable variable Save Failed ", err);
                             var instance = msg.FormatMessage(err, "Add Variable", status, undefined);
                             res.write(instance);
+                            res.end();
 
-                            logger.error("DVP-SystemRegistry.AddVariable variable Save Failed ",err);
+                        })
+                }
+                else
+                {
+                    logger.error("DVP-SystemRegistry.AddVariable Image NotFound ");
+                    var instance = msg.FormatMessage(undefined, "Add AddVariable failed no image", status, undefined);
+                    res.write(instance);
+                    res.end();
 
-                        }
-                    }
-                )
-            }
-            else
+                }
+
+            })
+            .catch(function(err)
             {
-                logger.error("DVP-SystemRegistry.AddVariable Image NotFound ");
-                var instance = msg.FormatMessage(undefined, "Add AddVariable failed no image", status, undefined);
+                var instance = msg.FormatMessage(err, "Image instance exception", status, undefined);
                 res.write(instance);
                 res.end();
-
-            }
-
-        })
-
+            })
 
     }
-    else{
-
+    else
+    {
         var instance = msg.FormatMessage(undefined, "Add Variable", status, undefined);
         res.write(instance);
         res.end();
@@ -957,145 +909,107 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/Variable', functi
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/Templates', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Templates', function(req, res, next)
+{
+    logger.debug("DVP-SystemRegistry.GetTemplates HTTP");
 
+    var tempArr = [];
 
-    logger.debug("DVP-SystemRegistry.GetTemplates HTTP  ");
+    dbModel.Template.findAll({include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]})
+        .then(function (templateInstance)
+        {
+            logger.debug("DVP-SystemRegistry.GetTemplates Found ");
 
+            var instance = msg.FormatMessage(undefined, "Get Templates done", true, templateInstance);
+            res.write(instance);
 
-    dbModel.Template.findAll({include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
+            res.end();
 
-        if (!err) {
-
-
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetTemplates Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get Templates done", true, templateInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-                logger.error("DVP-SystemRegistry.GetTemplates Failed", exp);
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetTemplates Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Templates failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/Template/:id', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Template/:id', function(req, res, next)
+{
+    logger.debug("DVP-SystemRegistry.GetTemplate HTTP");
 
+    dbModel.Template.findAll({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Image, as: "TemplateImage",include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]})
+        .then(function (templateInstance)
+        {
 
-    logger.debug("DVP-SystemRegistry.GetTemplate HTTP  ");
+            logger.debug("DVP-SystemRegistry.GetTemplate %d Found",parseInt(req.params.id));
 
+            var instance = msg.FormatMessage(undefined, "Get Template done", true, templateInstance);
+            res.write(instance);
 
-    dbModel.Template.findAll({ where: [{id: parseInt(req.params.id)}], include: [{model: dbModel.Image, as: "TemplateImage",include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
+            res.end();
 
-        if (!err) {
-
-
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetTemplate %d Found",parseInt(req.params.id));
-
-                var instance = msg.FormatMessage(undefined, "Get Template done", true, templateInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetTemplate Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Template failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/TemplateByName/:name', function(req, res, next){
-
+server.get('/DVP/API/:version/SystemRegistry/TemplateByName/:name', function(req, res, next)
+{
     logger.debug("DVP-SystemRegistry.GetTemplate HTTP  ");
 
+    var tempArr = [];
 
-    dbModel.Template.findAll({ where: [{Name: req.params.name}], include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]}).complete(function (err, templateInstance) {
+    dbModel.Template.findAll({ where: [{Name: req.params.name}], include: [{model: dbModel.Image, as: "TemplateImage", include: [{model: dbModel.Variable, as: "SystemVariables"},{model: dbModel.Image, as: "Dependants"},{model: dbModel.Service, as :"Services"}]}]})
+        .then(function (templateInstance)
+        {
+            logger.debug("DVP-SystemRegistry.GetTemplate %s Found", req.params.name);
 
-        //, include: []
-        if (!err) {
+            var instance = msg.FormatMessage(undefined, "Get Template done", true, templateInstance);
+            res.write(instance);
 
+            logger.debug('DVP-SystemRegistry.GetTemplateByName - Retuned : ', JSON.stringify(instance));
+            res.end();
 
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetTemplate %s Found",req.params.name);
-
-                var instance = msg.FormatMessage(undefined, "Get Template done", true, templateInstance);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-
-            }
-
-        } else {
-
+        })
+        .catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetTemplate Failed", err);
 
-            var instance = msg.FormatMessage(err, "Get Template failed", false, undefined);
+            var instance = msg.FormatMessage(err, "Get Template failed", false, tempArr);
             res.write(instance);
-        }
-
-        logger.debug('DVP-SystemRegistry.GetTemplateByName - Retuned : ', JSON.stringify(instance))
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Template', function(req, res, next){
+server.post('/DVP/API/:version/SystemRegistry/Template', function(req, res, next)
+{
 
-    var templateData=req.body;
+    var templateData = req.body;
     var status = false;
-    if(templateData) {
 
+    if(templateData)
+    {
         var template = dbModel.Template.build({
-
 
             Name: templateData.Name,
             Description: templateData.Description,
@@ -1105,51 +1019,37 @@ server.post('/DVP/API/:version/SystemRegistry/Template', function(req, res, next
             CompanyId: 1,
             TenantId: 3
 
-
         });
 
 
         template
             .save()
-            .complete(function (err) {
-                try {
+            .then(function (rslt)
+            {
+                logger.debug('DVP-SystemRegistry.CreateTemplate PGSQL Cloud object saved successful ');
+                status = true;
 
-                    if (err) {
-                        logger.error("DVP-SystemRegistry.CreateTemplate PGSQL save failed ", err);
+                var instance = msg.FormatMessage(undefined, "Store Template Done", status, rslt);
+                res.write(instance);
+                res.end();
 
-                        var instance = msg.FormatMessage(err,"Store Template Failed", status,undefined);
-                        res.write(instance);
-                        res.end();
+            })
+            .catch(function(err)
+            {
+                logger.error("DVP-SystemRegistry.CreateTemplate PGSQL save failed ", err);
 
-
-                    }
-                    else {
-                        logger.debug('DVP-SystemRegistry.CreateTemplate PGSQL Cloud object saved successful ');
-                        status = true;
-
-                        var instance = msg.FormatMessage(undefined,"Store Template Done", status,undefined);
-                        res.write(instance);
-                        res.end();
-                    }
-
-                }
-                catch (ex) {
-                    logger.error("DVP-SystemRegistry.CreateTemplate failed ", ex);
-
-                    res.end();
-
-
-                }
-
+                var instance = msg.FormatMessage(err,"Store Template Failed", status,undefined);
+                res.write(instance);
+                res.end();
             });
-    }else{
-
+    }
+    else
+    {
         logger.error("DVP-SystemRegistry.CreateTemplate Object Validation Failed");
-        var instance = msg.FormatMessage(undefined,"Store Template Object Validation Failed", status,undefined);
+        var instance = msg.FormatMessage(undefined, "Store Template Object Validation Failed", status, undefined);
         res.write(instance);
         res.end();
     }
-
 
     return next();
 
@@ -1159,79 +1059,96 @@ server.put('/DVP/API/:version/SystemRegistry/Template/:name', function(req, res,
 
 server.del('/DVP/API/:version/SystemRegistry/Template/:name', function(req, res, next){});
 
-server.post('/DVP/API/:version/SystemRegistry/Template/:templateName/AddBaseImage/:imageName/:priority', function(req, res, next){
-
-
+server.post('/DVP/API/:version/SystemRegistry/Template/:templateName/AddBaseImage/:imageName/:priority', function(req, res, next)
+{
     var templateName = req.params.templateName;
     var imageName = req.params.imageName;
     var pririty = req.params.priority;
 
-
     logger.debug("DVP-SystemRegistry.AddImageToTemplate id HTTP %s to %s", templateName, imageName);
     var status = false;
-    dbModel.Template.find({where: [{Name: templateName}]}).complete(function (err, templateInstance) {
 
-        if (!err && templateInstance) {
+    dbModel.Template.find({where: [{Name: templateName}]})
+        .then(function (templateInstance)
+        {
+            if (templateInstance)
+            {
+                logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
 
-            logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
+                dbModel.Image.find({where: [{Name: imageName}]})
+                    .then(function (imageInstance)
+                    {
+                        if (imageInstance)
+                        {
 
+                            logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found ", imageName);
 
-            dbModel.Image.find({where: [{Name: imageName}]}).complete(function (err, imageInstance) {
+                            templateInstance.addTemplateImage(imageInstance, {
+                                Type: 'Mandetory',
+                                Priority: parseInt(pririty)
+                            })
+                                .then(function (cloudInstancex)
+                                {
+                                    logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
+                                    status = true;
+                                    var instance = msg.FormatMessage(undefined, "AddImage To Template", status, cloudInstancex);
+                                    res.write(instance);
+                                    res.end();
 
-                if (!err && imageInstance) {
-
-                    logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found ", imageName);
-
-                    templateInstance.addTemplateImage(imageInstance, { Type: 'Mandetory', Priority: parseInt(pririty) }).complete(function (errx, cloudInstancex) {
-
-                        logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
-
-                        if(!errx) {
-                            status = true;
-                            var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
-                            res.write(instance);
-                            res.end();
-                        }else{
-
-                            var instance = msg.FormatMessage(errx, "AddImage To Template failed", status, undefined);
-                            res.write(instance);
-                            res.end();
-
+                                })
+                                .catch(function(err)
+                                {
+                                    var instance = msg.FormatMessage(errx, "AddImage To Template failed", status, undefined);
+                                    res.write(instance);
+                                    res.end();
+                                });
 
                         }
+                        else
+                        {
 
-                    });
+                            logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
 
-                } else {
+                            var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
+                            res.write(instance);
 
-                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
+                            res.end();
+                        }
 
-                    var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
+
+                })
+                .catch(function(err)
+                {
+                    var instance = msg.FormatMessage(err, "AddImage To Template failed", status, undefined);
                     res.write(instance);
-
                     res.end();
-                }
+                })
 
+            }
+            else
+            {
 
-            })
+                logger.err("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
 
-        } else {
+                var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
+                res.write(instance);
+                res.end();
+            }
 
-            logger.err("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
-
-            var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
-            res.write(instance);
-            res.end();
-        }
-
+    })
+    .catch(function(err)
+    {
+        var instance = msg.FormatMessage(err, "AddImage To Template failed", status, undefined);
+        res.write(instance);
+        res.end();
     });
 
     return next();
 
-
 });
 
-server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalImage/:imageID/:priority', function(req, res, next){
+server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalImage/:imageID/:priority', function(req, res, next)
+{
 
     var templateName = req.params.templateName;
     var imageName = req.params.imageName;
@@ -1240,63 +1157,80 @@ server.post('/DVP/API/:version/SystemRegistry/Template/:templateID/AddOptionalIm
 
     logger.debug("DVP-SystemRegistry.AddImageToTemplate id HTTP %s to %s", templateName, imageName);
     var status = false;
-    dbModel.Template.find({where: [{Name: templateName}]}).complete(function (err, templateInstance) {
 
-        if (!err && templateInstance) {
+    dbModel.Template.find({where: [{Name: templateName}]})
+        .then(function (templateInstance)
+        {
+            if (templateInstance)
+            {
 
-            logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
+                logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL template %s Found", templateName);
 
+                dbModel.Image.find({where: [{Name: imageName}]})
+                    .then(function (imageInstance)
+                    {
 
-            dbModel.Image.find({where: [{Name: imageName}]}).complete(function (err, imageInstance) {
+                        if (imageInstance)
+                        {
 
-                if (!err && imageInstance) {
+                            logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found", imageName);
 
-                    logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL Image %s Found", imageName);
+                            templateInstance.addTemplateImage(imageInstance, {
+                                Type: 'Optional',
+                                Priority: parseInt(pririty)
+                            }).then(function (cloudInstancex)
+                            {
 
-                    templateInstance.addTemplateImage(imageInstance, { Type: 'Optional', Priority: parseInt(pririty)}).complete(function (errx, cloudInstancex) {
+                                logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
+                                    status = true;
+                                    var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
+                                    res.write(instance);
+                                    res.end();
 
-                        logger.debug("DVP-SystemRegistry.AddImageToTemplate PGSQL");
-
-                        if(!errx) {
-                            status = true;
-                            var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
-                            res.write(instance);
-                            res.end();
-                        }else{
-
-                            var instance = msg.FormatMessage(errx, "AddImage To Template failed", status, undefined);
-                            res.write(instance);
-                            res.end();
-
+                            }).catch(function(err)
+                            {
+                                var instance = msg.FormatMessage(err, "AddImage To Template failed", status, undefined);
+                                res.write(instance);
+                                res.end();
+                            });
 
                         }
+                        else
+                        {
 
-                    });
+                            logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
 
-                } else {
+                            var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
+                            res.write(instance);
 
-                    logger.error("DVP-SystemRegistry.AddImageToTemplate PGSQL image %s NotFound", imageName, err);
-
-                    var instance = msg.FormatMessage(undefined, "AddImage To Template", status, undefined);
-                    res.write(instance);
-
-                    res.end();
-                }
+                            res.end();
+                        }
 
 
-            })
+                }).catch(function(err)
+                    {
+                        var instance = msg.FormatMessage(err, "AddImage To Template failed", status, undefined);
+                        res.write(instance);
+                        res.end();
+                    })
 
-        } else {
+            }
+            else
+            {
 
-            logger.error("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
+                logger.error("DVP-SystemRegistry.AddCallServerToCloud PGSQL template %s NotFound", templateName, err);
 
-            var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
+                var instance = msg.FormatMessage(undefined, "AddCallservers to cloud", status, undefined);
+                res.write(instance);
+                res.end();
+            }
+
+    }).catch(function(err)
+        {
+            var instance = msg.FormatMessage(err, "AddImage To Template failed", status, undefined);
             res.write(instance);
             res.end();
-        }
-
-    })
-
+        })
 
     return next();
 
@@ -1316,39 +1250,140 @@ server.put('/DVP/API/:version/SystemRegistry/Variable/:name', function(req, res,
 
 ///////////////////////////////////////////swarm cluster///////////////////////////////////////////////
 
+server.post('/DVP/API/:version/SystemRegistry/HealthMonitor/Node', function(req, res, next)
+{
+    try
+    {
+        logger.debug("DVP-SystemRegistry.HealthMonitor.Node HTTP  ");
 
-server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next){
+        var reqBody = req.body;
 
+        if(reqBody.UUID)
+        {
+            //reqBody.id = reqBody.UUID;
+
+            var obj = new Model(reqBody);
+
+            obj.save(function(err, rslt)
+            {
+                if(err)
+                {
+                    logger.error("DVP-SystemRegistry.HealthMonitor.Node - Error occurred", err);
+                    var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                    res.end(respMsg);
+                }
+                else
+                {
+                    logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Success");
+                    var respMsg = msg.FormatMessage(undefined, "Save Node Health Monitor Fail", true, rslt);
+                    res.end(respMsg);
+                }
+
+            })
+        }
+        else
+        {
+            logger.warn("DVP-SystemRegistry.HealthMonitor.Node - UUID not found");
+            var respMsg = msg.FormatMessage(new Error('UUID missing in document'), "Save Node Health Monitor Fail", false, undefined);
+            res.end(respMsg);
+        }
+
+
+    }
+    catch(ex)
+    {
+        logger.warn("DVP-SystemRegistry.HealthMonitor.Node - Exception occurred");
+        var respMsg = msg.FormatMessage(ex, "Save Node Health Monitor Fail", false, undefined);
+        res.end(respMsg);
+    }
+
+    return next();
+
+
+});
+
+server.get('/DVP/API/:version/SystemRegistry/HealthMonitor/Node/:uuid', function(req, res, next)
+{
+    try
+    {
+        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode HTTP  ");
+
+        var uuid = req.params.uuid;
+
+        if(uuid)
+        {
+            //reqBody.id = reqBody.UUID;
+
+            Model.find({ UUID: uuid }, function(err, node)
+            {
+                if(err)
+                {
+                    logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
+                    res.end('{}');
+                }
+                else
+                {
+                    if(node && node.length > 0 && node[0]._doc)
+                    {
+                        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Success");
+                        var respMsg = JSON.stringify(node[0]._doc);
+                        res.end(respMsg);
+                    }
+                    else
+                    {
+                        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Success");
+                        res.end('{}');
+                    }
+
+                }
+            });
+
+        }
+        else
+        {
+            logger.warn("DVP-SystemRegistry.HealthMonitor.Node - UUID not found");
+            var respMsg = msg.FormatMessage(new Error('UUID missing in document'), "Save Node Health Monitor Fail", false, undefined);
+            res.end(respMsg);
+        }
+
+
+    }
+    catch(ex)
+    {
+        logger.warn("DVP-SystemRegistry.HealthMonitor.Node - Exception occurred");
+        var respMsg = msg.FormatMessage(ex, "Save Node Health Monitor Fail", false, undefined);
+        res.end(respMsg);
+    }
+
+    return next();
+
+
+});
+
+
+server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.GetCluster HTTP  ");
 
 
-    dbModel.SwarmCluster.findAll({include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}]}).complete(function (err, cluster) {
+    dbModel.SwarmCluster.findAll({include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}]})
+        .then(function (cluster)
+        {
 
-        if (!err) {
+            logger.debug("DVP-SystemRegistry.GetCluster Found ");
+            var instance = msg.FormatMessage(undefined, "Get GetCluster done", true, cluster);
+            res.write(instance);
 
-            try {
+            res.end();
 
-                logger.debug("DVP-SystemRegistry.GetCluster Found ");
-                var instance = msg.FormatMessage(undefined, "Get GetCluster done", true, cluster);
-                res.write(instance);
-
-            } catch(exp) {
-
-                logger.error("DVP-SystemRegistry.GetCluster Failed", exp);
-            }
-
-        } else {
-
+        }).catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetCluster Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Cluster failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+        });
 
     return next();
 
@@ -1358,41 +1393,37 @@ server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next){
 server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(req, res, next)
 {
 
-    logger.debug("DVP-SystemRegistry.GetClusterByToken HTTP  ");
+    logger.debug("DVP-SystemRegistry.GetClusterByToken HTTP");
 
 
-    dbModel.SwarmCluster.find({where: {Token: req.params.token}, include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}]}).complete(function (err, templateInstance) {
-
-        //, include: []
-        if (!err)
+    dbModel.SwarmCluster.find({where: {Token: req.params.token}, include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance", include : [{model: dbModel.SwarmDockerEnvVariable, as: "Env"}]}]}]})
+        .then(function (templateInstance)
         {
-
-            try {
+            try
+            {
 
                 logger.debug("DVP-SystemRegistry.GetClusterByToken %s Found",req.params.token);
 
                 var instance = msg.FormatMessage(undefined, "Get ClusterByToken done", true, templateInstance);
                 res.write(instance);
+                res.end();
 
             }
             catch(exp)
             {
-
+                var instance = msg.FormatMessage(exp, "Error occurred", true, undefined);
+                res.write(instance);
+                res.end();
             }
 
-        }
-        else
+    }).catch(function(err)
         {
-
             logger.error("DVP-SystemRegistry.GetClusterByToken Failed", err);
 
             var instance = msg.FormatMessage(err, "Get ClusterByToken failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
@@ -1402,7 +1433,9 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
 
     var templateData=req.body;
     var status = false;
-    if(templateData) {
+
+    if(templateData)
+    {
 
         var cluster = dbModel.SwarmCluster.build({
 
@@ -1420,41 +1453,27 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
         });
 
         cluster.save()
-            .complete(function (err) {
-                try {
+            .then(function (rslt)
+            {
+                logger.debug('DVP-SystemRegistry.CreateCluster PGSQL Cluster object saved successful ');
+                status = true;
 
-                    if (err)
-                    {
-                        logger.error("DVP-SystemRegistry.CreateCluster PGSQL save failed ", err);
+                var instance = msg.FormatMessage(undefined, "Store Cluster Done", status, rslt);
+                res.write(instance);
+                res.end();
 
-                        var instance = msg.FormatMessage(err,"Store Cluster Failed", status,undefined);
-                        res.write(instance);
-                        res.end();
+            }).catch(function(err)
+            {
+                logger.error("DVP-SystemRegistry.CreateCluster PGSQL save failed ", err);
 
-
-                    }
-                    else
-                    {
-                        logger.debug('DVP-SystemRegistry.CreateCluster PGSQL Cluster object saved successful ');
-                        status = true;
-
-                        var instance = msg.FormatMessage(undefined,"Store Cluster Done", status,undefined);
-                        res.write(instance);
-                        res.end();
-                    }
-
-                }
-                catch (ex)
-                {
-                    logger.error("DVP-SystemRegistry.CreateCluster failed ", ex);
-                    var instance = msg.FormatMessage(ex,"Store Cluster Error", status,undefined);
-                    res.write(instance);
-                    res.end();
-                }
+                var instance = msg.FormatMessage(err,"Store Cluster Failed", status,undefined);
+                res.write(instance);
+                res.end();
 
             });
     }
-    else{
+    else
+    {
 
         logger.error("DVP-SystemRegistry.Createcluster Object Validation Failed");
         var instance = msg.FormatMessage(undefined,"Store cluster Object Validation Failed", status,undefined);
@@ -1474,85 +1493,61 @@ server.del('/DVP/API/:version/SystemRegistry/Cluster/:token', function(req, res,
 
 
 ////////////////////////////////////////////swarm node////////////////////////////////////////////////////
-server.get('/DVP/API/:version/SystemRegistry/Node', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Nodes', function(req, res, next){
 
 
     logger.debug("DVP-SystemRegistry.GetNode HTTP  ");
 
 
-    dbModel.SwarmNode.findAll({include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}).complete(function (err, node) {
-
-        if (!err)
+    dbModel.SwarmNode.findAll({include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]})
+        .then(function (node)
         {
-            try
-            {
 
-                logger.debug("DVP-SystemRegistry.GetNode Found ");
+            logger.debug("DVP-SystemRegistry.GetNode Found ");
 
-                var instance = msg.FormatMessage(undefined, "Get GetNode done", true, node);
-                res.write(instance);
+            var instance = msg.FormatMessage(undefined, "Get GetNode done", true, node);
+            res.write(instance);
 
-            }
-            catch(exp) {
+            res.end();
 
-
-                logger.error("DVP-SystemRegistry.GetNode Failed", exp);
-
-            }
-
-        } else {
-
+        }).catch(function(err)
+        {
             logger.error("DVP-SystemRegistry.GetNode Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Node failed", false, undefined);
             res.write(instance);
-        }
-
-        res.end();
-
-    });
+            res.end();
+        });
 
     return next();
 
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/NodeByName/:name', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/Node/:uuid', function(req, res, next){
 
 
-    logger.debug("DVP-SystemRegistry.GetNodeByName HTTP  ");
+    logger.debug("DVP-SystemRegistry.GetNode HTTP  ");
 
 
-    dbModel.SwarmNode.findAll({where: [{Name: req.params.name}],include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]}).complete(function (err, node) {
+    dbModel.SwarmNode.findAll({where: [{UUID: req.params.uuid}],include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]})
+        .then(function (node)
+        {
+            logger.debug("DVP-SystemRegistry.GetNode Found ");
 
-        if (!err) {
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetNodeByName Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get NodeByName done", true, node);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-                logger.error("DVP-SystemRegistry.GetNodeByName Failed", exp);
-
-            }
-
-        } else {
-
-            logger.error("DVP-SystemRegistry.GetNodeByName Failed", err);
-
-            var instance = msg.FormatMessage(err, "Get NodeByName failed", false, undefined);
+            var instance = msg.FormatMessage(undefined, "Get NodeByName done", true, node);
             res.write(instance);
-        }
 
-        res.end();
+            res.end();
 
-    });
+        }).catch(function(err)
+        {
+            logger.error("DVP-SystemRegistry.GetNode Failed", err);
+
+            var instance = msg.FormatMessage(err, "Get GetNode failed", false, undefined);
+            res.write(instance);
+            res.end();
+        });
 
     return next();
 
@@ -1565,11 +1560,16 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
 
     var node=req.body;
     var status = false;
-    if(node){
+    if(node)
+    {
 
-        dbModel.SwarmCluster.find({where: [{ Token: node.ClusterToken}]}).complete(function(err, cluster) {
-            if(!err && cluster) {
-                logger.debug("DVP-SystemRegistr.AddNode cluster Found ");
+        dbModel.SwarmCluster.find({where: [{ Token: node.ClusterToken}]})
+            .then(function(cluster)
+            {
+                if(cluster)
+                {
+
+                    logger.debug("DVP-SystemRegistr.AddNode cluster Found ");
 
                 var nodeInf = dbModel.SwarmNode.build({
                     UniqueId: node.UniqueId,
@@ -1589,14 +1589,12 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
 
                 nodeInf
                     .save()
-                    .complete(function (err) {
-
-                        if (!err) {
-
+                    .then(function (rslt)
+                    {
 
                             logger.debug("DVP-SystemRegistr.AddNode node Saved ");
 
-                            cluster.addSwarmNode(nodeInf).complete(function (errx, clusterInstancex)
+                            cluster.addSwarmNode(nodeInf).then(function (clusterInstancex)
                             {
 
                                 logger.debug("DVP-SystemRegistr.AddNode Node Set cluster");
@@ -1608,21 +1606,23 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                                 res.end();
 
 
+                            }).catch(function(err)
+                            {
+                                var instance = msg.FormatMessage(err, "Add Node", status, undefined);
+                                res.write(instance);
+                                res.end();
+
+                                logger.error("DVP-SystemRegistr.AddNode Node Save Failed ",err);
                             });
+                    }).catch(function(err)
+                    {
+                        var instance = msg.FormatMessage(err, "Add Node", status, undefined);
+                        res.write(instance);
+                        res.end();
 
+                        logger.error("DVP-SystemRegistr.AddNode Node Save Failed ",err);
 
-                        }
-                        else
-                        {
-
-                            var instance = msg.FormatMessage(err, "Add Node", status, undefined);
-                            res.write(instance);
-
-                            logger.error("DVP-SystemRegistr.AddNode Node Save Failed ",err);
-
-                        }
-                    }
-                )
+                    })
             }
             else
             {
@@ -1633,7 +1633,13 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
 
             }
 
-        })
+        }).catch(function(err)
+            {
+                logger.error("DVP-SystemRegistr.AddNode exception ");
+                var instance = msg.FormatMessage(err, "Add Node", status, undefined);
+                res.write(instance);
+                res.end();
+            })
 
 
     }
@@ -1663,45 +1669,30 @@ server.del('/DVP/API/:version/SystemRegistry/Node/:name', function(req, res, nex
 
 
 ////////////////////////////////////////////swarm docker instances////////////////////////////////////////////////////
-server.get('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next){
-
+server.get('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next)
+{
 
     logger.debug("DVP-SystemRegistry.GetInstances HTTP  ");
 
+    dbModel.SwarmDockerInstance.findAll().then(function (inst)
+    {
+        logger.debug("DVP-SystemRegistry.GetInstances Found ");
 
-    dbModel.SwarmDockerInstance.findAll().complete(function (err, inst) {
-
-        if (!err) {
-
-            try {
-
-
-                logger.debug("DVP-SystemRegistry.GetInstances Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get Instances done", true, inst);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-                logger.error("DVP-SystemRegistry.GetInstances Failed", exp);
-
-            }
-
-        } else {
-
-            logger.error("DVP-SystemRegistry.GetInstances Failed", err);
-
-            var instance = msg.FormatMessage(err, "Get Instances failed", false, undefined);
-            res.write(instance);
-        }
+        var instance = msg.FormatMessage(undefined, "Get Instances done", true, inst);
+        res.write(instance);
 
         res.end();
 
+    }).catch(function(err)
+    {
+        logger.error("DVP-SystemRegistry.GetInstances Failed", err);
+
+        var instance = msg.FormatMessage(err, "Get Instances failed", false, undefined);
+        res.write(instance);
+        res.end();
     });
 
     return next();
-
 
 });
 
@@ -1710,33 +1701,22 @@ server.get('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, re
 
     logger.debug("DVP-SystemRegistry.GetInstanceByID HTTP  ");
 
-    dbModel.SwarmDockerInstance.findAll({where: [{UUID: req.params.id}]}).complete(function (err, inst) {
+    dbModel.SwarmDockerInstance.findAll({where: [{UUID: req.params.id}]}).then(function (inst)
+    {
+        logger.debug("DVP-SystemRegistry.GetInstanceByID Found ");
 
-        if (!err) {
-
-            try {
-                logger.debug("DVP-SystemRegistry.GetInstanceByID Found ");
-
-                var instance = msg.FormatMessage(undefined, "Get InstanceByID done", true, inst);
-                res.write(instance);
-
-            } catch(exp) {
-
-
-                logger.error("DVP-SystemRegistry.GetInstanceByID Failed", exp);
-
-            }
-
-        } else {
-
-            logger.error("DVP-SystemRegistry.GetInstanceByID Failed", err);
-
-            var instance = msg.FormatMessage(err, "Get InstanceByID failed", false, undefined);
-            res.write(instance);
-        }
+        var instance = msg.FormatMessage(undefined, "Get InstanceByID done", true, inst);
+        res.write(instance);
 
         res.end();
 
+    }).catch(function(err)
+    {
+        logger.error("DVP-SystemRegistry.GetInstanceByID Failed", err);
+
+        var instance = msg.FormatMessage(err, "Get InstanceByID failed", false, undefined);
+        res.write(instance);
+        res.end();
     });
 
     return next();
@@ -1754,9 +1734,9 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
     if(instanceInfo)
     {
 
-        dbModel.SwarmNode.find({where: [{ UniqueId: instanceInfo.SwarmNodeUuid}]}).complete(function(err, nodeInfo)
+        dbModel.SwarmNode.find({where: [{ UniqueId: instanceInfo.SwarmNodeUuid}]}).then(function(nodeInfo)
         {
-            if(!err && nodeInfo)
+            if(nodeInfo)
             {
                 logger.debug("DVP-SystemRegistr.AddInstance node Found");
 
@@ -1775,17 +1755,46 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
 
                 inst
                     .save()
-                    .complete(function (err) {
-
-                        if (!err)
-                        {
+                    .then(function (rslt)
+                    {
 
                             logger.debug("DVP-SystemRegistr.AddInstance instance Saved ");
 
-                            nodeInfo.addSwarmDockerInstance(inst).complete(function (er, rslt)
+                            nodeInfo.addSwarmDockerInstance(inst).then(function (rslt)
                             {
 
                                 logger.debug("DVP-SystemRegistr.AddInstance Instance Set node");
+
+                                if(instanceInfo.Envs)
+                                {
+                                    instanceInfo.Envs.forEach(function(envVar)
+                                    {
+                                        var swarmEnvVar = dbModel.SwarmDockerEnvVariable.build({
+                                            Name: envVar.Name,
+                                            Value: envVar.Value,
+                                            Export: envVar.Export
+
+                                        });
+
+                                        swarmEnvVar
+                                            .save()
+                                            .then(function (rslt)
+                                            {
+                                                inst.addEnv(swarmEnvVar).then(function(evRes)
+                                                {
+
+                                                }).catch(function(ex)
+                                                {
+
+                                                })
+
+                                            }).catch(function(err)
+                                            {
+
+                                            })
+
+                                    })
+                                }
 
                                 status = true;
 
@@ -1793,23 +1802,24 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                                 res.write(instance);
                                 res.end();
 
+                            })
+                                .catch(function(err)
+                                {
+                                    var instance = msg.FormatMessage(err, "Add Instance Failed", status, undefined);
+                                    res.write(instance);
+                                    res.end();
 
-                            });
-
-
-                        }
-                        else
-                        {
-
-                            var instance = msg.FormatMessage(err, "Add Instance Failed", status, undefined);
-                            res.write(instance);
-                            res.end();
-
-                            logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
-
-                        }
+                                    logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
+                                });
                     }
-                )
+                ).catch(function(err)
+                    {
+                        var instance = msg.FormatMessage(err, "Add Instance Failed", status, undefined);
+                        res.write(instance);
+                        res.end();
+
+                        logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
+                    })
             }
             else
             {
@@ -1820,6 +1830,12 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
 
             }
 
+        }).catch(function(err)
+        {
+            logger.error("DVP-SystemRegistr.AddInstance - Exception occurred ", err);
+            var instance = msg.FormatMessage(err, "Exception occurred", status, undefined);
+            res.write(instance);
+            res.end();
         })
 
 
@@ -1840,11 +1856,144 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
 
 });
 
-server.del('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, res, next)
+server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:status', function(req, res, next)
+{
+
+    logger.debug("DVP-SystemRegistr.UpdateInstanceStatus HTTP");
+
+    var instanceId = req.params.id;
+    var status = req.params.status;
+    var swarmNodeUuid = req.params.uuid;
+
+    try
+    {
+        dbModel.SwarmDockerInstance.find({where: [{UUID: instanceId}]})
+            .then(function (instance)
+            {
+                if(instance)
+                {
+                    var updateData = {Status:status};
+
+                    if(swarmNodeUuid)
+                    {
+                        instance.updateAttributes(updateData)
+                            .then(function(updateData)
+                            {
+
+                                Model.find({ UUID: swarmNodeUuid }, function(err, node)
+                                {
+                                    if(err)
+                                    {
+                                        logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
+                                        var respMsg = msg.FormatMessage(err, "Get Node Health Monitor Fail", false, undefined);
+                                        res.end(respMsg);
+                                    }
+                                    else
+                                    {
+                                        if(node && node.length > 0)
+                                        {
+
+                                                    var ins = underscore.find(node[0]._doc.Instances, function (instnce)
+                                                    {
+                                                        return instnce.UUID == instanceId;
+                                                    });
+
+                                                    if(ins)
+                                                    {
+                                                        ins.Status = status;
+
+                                                        var newModel = new Model(node[0]);
+
+                                                        Model.remove({ _id: node[0]._id }, function(err, remRslt)
+                                                        {
+                                                            if(!err)
+                                                            {
+                                                                newModel.save(function(err, rslt)
+                                                                {
+                                                                    if(err)
+                                                                    {
+                                                                        logger.error("DVP-SystemRegistry.HealthMonitor.Node - Error occurred", err);
+                                                                        var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                                        res.end(respMsg);
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Success");
+                                                                        var respMsg = msg.FormatMessage(undefined, "Save Node Health Monitor Success", true, rslt);
+                                                                        res.end(respMsg);
+                                                                    }
+
+                                                                })
+                                                            }
+                                                            else
+                                                            {
+                                                                logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                                                var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                                res.end(respMsg);
+                                                            }
+                                                        });
+
+
+                                                    }
+                                                    else
+                                                    {
+                                                        logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                                        var respMsg = msg.FormatMessage(new Error('Instance not found'), "Save Node Health Monitor Fail", false, undefined);
+                                                        res.end(respMsg);
+                                                    }
+
+                                        }
+
+
+
+                                    }
+                                });
+
+                            })
+                            .catch(function(err)
+                            {
+                                var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
+                                res.write(instance);
+                                res.end();
+                            })
+                    }
+                    else
+                    {
+                        var instance = msg.FormatMessage(new Error('Node uuid not provided'), "Update Instance State", false, undefined);
+                        res.write(instance);
+                        res.end();
+                    }
+
+
+                }
+                else
+                {
+                    var instance = msg.FormatMessage(new Error('Instance not found'), "Update Instance State", false, undefined);
+                    res.write(instance);
+                    res.end();
+                }
+            })
+            .catch(function(err)
+            {
+                var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
+                res.write(instance);
+                res.end();
+            });
+    }
+    catch(ex)
+    {
+        var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
+        res.write(instance);
+        res.end();
+    }
+});
+
+server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(req, res, next)
 {
     try
     {
         var instanceId = req.params.id;
+        var swarmNodeUuid = req.params.uuid;
 
         logger.debug('[DVP-SystemRegistry.DeleteInstanceByID] - HTTP Request Received - Req Params - InstanceId : %s', instanceId);
 
@@ -1858,11 +2007,78 @@ server.del('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, re
 
                     instance.destroy().then(function (result)
                     {
+                        Model.find({ UUID: swarmNodeUuid }, function(err, node)
+                        {
+                            if(err)
+                            {
+                                logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
+                                var respMsg = msg.FormatMessage(err, "Get Node Health Monitor Fail", false, undefined);
+                                res.end(respMsg);
+                            }
+                            else
+                            {
+                                if(node && node.length > 0)
+                                {
+                                        var itemToRemove = -1;
+                                        for(var i = 0; i < node[0]._doc.Instances.length; i++)
+                                        {
+                                            if(node[0]._doc.Instances[i].UUID === instanceId)
+                                            {
+                                                node[0]._doc.Instances.splice(i, 1);
+                                                itemToRemove = i;
+                                                break;
+                                            }
+                                        }
 
-                            logger.debug("[DVP-SystemRegistry.DeleteInstanceByID] - Instance deleted successfully");
+                                        if(itemToRemove > -1)
+                                        {
+                                            var newModel = new Model(node[0]);
 
-                            var respRes = msg.FormatMessage(undefined, "Instance deleted successfully", true, result);
-                            res.end(respRes);
+                                            Model.remove({ _id: node[itemToRemove]._id }, function(err, remRslt)
+                                            {
+                                                if(!err)
+                                                {
+                                                    newModel.save(function(err, rslt)
+                                                    {
+                                                        if(err)
+                                                        {
+                                                            logger.error("DVP-SystemRegistry.HealthMonitor.Node - Error occurred", err);
+                                                            var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                            res.end(respMsg);
+                                                        }
+                                                        else
+                                                        {
+                                                            logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Success");
+                                                            var respMsg = msg.FormatMessage(undefined, "Save Node Health Monitor Success", true, rslt);
+                                                            res.end(respMsg);
+                                                        }
+
+                                                    })
+                                                }
+                                                else
+                                                {
+                                                    logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                                    var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                    res.end(respMsg);
+                                                }
+                                            });
+
+
+                                        }
+                                        else
+                                        {
+                                            logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                            var respMsg = msg.FormatMessage(new Error('Instance not found'), "Save Node Health Monitor Fail", false, undefined);
+                                            res.end(respMsg);
+                                        }
+
+                                }
+
+
+
+                            }
+                        });
+
 
                     }).catch(function(err)
                     {
