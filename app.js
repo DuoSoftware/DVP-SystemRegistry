@@ -37,7 +37,7 @@ var mongoUrl = 'mongodb://' + mongoDbIp + '/' + mongoDbDb;
 
 var conn = mongoose.connect(mongoUrl);
 
-var schema = new mongoose.Schema({UUID: {type: String}}, { strict: false });
+var schema = new mongoose.Schema({_id: {type: String}, UUID: {type: String}}, { strict: false });
 
 var Model = mongoose.model('SwarmNode', schema);
 
@@ -758,7 +758,7 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependI
                             {
                                 logger.debug("DVP-SystemRegistry.ImageDependsOn Service Saved ");
 
-                                imageInstance.addDependants(depimageInstance, {DependentID: depimageInstance.Id})
+                                imageInstance.addDependants(depimageInstance, {DependantId: depimageInstance.id})
                                     .then(function (depimageInstancex)
                                     {
                                         logger.debug("DVP-SystemRegistry.ImageDependsOn Service Set Image");
@@ -1260,7 +1260,7 @@ server.post('/DVP/API/:version/SystemRegistry/HealthMonitor/Node', function(req,
 
         if(reqBody.UUID)
         {
-            //reqBody.id = reqBody.UUID;
+            reqBody._id = reqBody.UUID;
 
             var obj = new Model(reqBody);
 
@@ -1314,7 +1314,7 @@ server.get('/DVP/API/:version/SystemRegistry/HealthMonitor/Node/:uuid', function
         {
             //reqBody.id = reqBody.UUID;
 
-            Model.find({ UUID: uuid }, function(err, node)
+            Model.findById({ _id: uuid }, function(err, node)
             {
                 if(err)
                 {
@@ -1323,10 +1323,10 @@ server.get('/DVP/API/:version/SystemRegistry/HealthMonitor/Node/:uuid', function
                 }
                 else
                 {
-                    if(node && node.length > 0 && node[0]._doc)
+                    if(node && node._doc)
                     {
                         logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Success");
-                        var respMsg = JSON.stringify(node[0]._doc);
+                        var respMsg = JSON.stringify(node._doc);
                         res.end(respMsg);
                     }
                     else
@@ -1361,6 +1361,10 @@ server.get('/DVP/API/:version/SystemRegistry/HealthMonitor/Node/:uuid', function
 });
 
 
+
+
+
+
 server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
 {
 
@@ -1377,12 +1381,17 @@ server.get('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
 
             res.end();
 
+            logger.debug("DVP-SystemRegistry.GetCluster - Response : " + instance);
+
         }).catch(function(err)
         {
             logger.error("DVP-SystemRegistry.GetCluster Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Cluster failed", false, undefined);
             res.write(instance);
+            res.end();
+
+            logger.debug("DVP-SystemRegistry.GetCluster - Response : " + instance);
         });
 
     return next();
@@ -1396,7 +1405,7 @@ server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(re
     logger.debug("DVP-SystemRegistry.GetClusterByToken HTTP");
 
 
-    dbModel.SwarmCluster.find({where: {Token: req.params.token}, include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance", include : [{model: dbModel.SwarmDockerEnvVariable, as: "Env"}]}]}]})
+    dbModel.SwarmCluster.find({where: {Token: req.params.token}, include: [{model: dbModel.SwarmNode, as: "SwarmNode", include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance", include : [{model: dbModel.SwarmDockerEnvVariable, as: "Envs"}]}]}]})
         .then(function (templateInstance)
         {
             try
@@ -1405,8 +1414,11 @@ server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(re
                 logger.debug("DVP-SystemRegistry.GetClusterByToken %s Found",req.params.token);
 
                 var instance = msg.FormatMessage(undefined, "Get ClusterByToken done", true, templateInstance);
+
                 res.write(instance);
                 res.end();
+
+                logger.debug("DVP-SystemRegistry.GetClusterByToken - Response : " + instance);
 
             }
             catch(exp)
@@ -1414,6 +1426,7 @@ server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(re
                 var instance = msg.FormatMessage(exp, "Error occurred", true, undefined);
                 res.write(instance);
                 res.end();
+                logger.debug("DVP-SystemRegistry.GetClusterByToken - Response : " + instance);
             }
 
     }).catch(function(err)
@@ -1423,6 +1436,7 @@ server.get('/DVP/API/:version/SystemRegistry/ClusterByToken/:token', function(re
             var instance = msg.FormatMessage(err, "Get ClusterByToken failed", false, undefined);
             res.write(instance);
             res.end();
+            logger.debug("DVP-SystemRegistry.GetClusterByToken - Response : " + instance);
         });
 
     return next();
@@ -1462,6 +1476,8 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
                 res.write(instance);
                 res.end();
 
+                logger.debug("DVP-SystemRegistry.Createcluster - Response : " + instance);
+
             }).catch(function(err)
             {
                 logger.error("DVP-SystemRegistry.CreateCluster PGSQL save failed ", err);
@@ -1469,6 +1485,8 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
                 var instance = msg.FormatMessage(err,"Store Cluster Failed", status,undefined);
                 res.write(instance);
                 res.end();
+
+                logger.debug("DVP-SystemRegistry.Createcluster - Response : " + instance);
 
             });
     }
@@ -1479,6 +1497,8 @@ server.post('/DVP/API/:version/SystemRegistry/Cluster', function(req, res, next)
         var instance = msg.FormatMessage(undefined,"Store cluster Object Validation Failed", status,undefined);
         res.write(instance);
         res.end();
+
+        logger.debug("DVP-SystemRegistry.Createcluster - Response : " + instance);
     }
 
 
@@ -1496,27 +1516,31 @@ server.del('/DVP/API/:version/SystemRegistry/Cluster/:token', function(req, res,
 server.get('/DVP/API/:version/SystemRegistry/Nodes', function(req, res, next){
 
 
-    logger.debug("DVP-SystemRegistry.GetNode HTTP  ");
+    logger.debug("DVP-SystemRegistry.GetNodes HTTP  ");
 
 
     dbModel.SwarmNode.findAll({include: [{model: dbModel.SwarmDockerInstance, as :"SwarmDockerInstance"}]})
         .then(function (node)
         {
 
-            logger.debug("DVP-SystemRegistry.GetNode Found ");
+            logger.debug("DVP-SystemRegistry.GetNodes Found ");
 
             var instance = msg.FormatMessage(undefined, "Get GetNode done", true, node);
             res.write(instance);
 
             res.end();
 
+            logger.debug("DVP-SystemRegistry.GetNodes - Response : " + instance);
+
         }).catch(function(err)
         {
-            logger.error("DVP-SystemRegistry.GetNode Failed", err);
+            logger.error("DVP-SystemRegistry.GetNodes Failed", err);
 
             var instance = msg.FormatMessage(err, "Get Node failed", false, undefined);
             res.write(instance);
             res.end();
+
+            logger.debug("DVP-SystemRegistry.GetNodes - Response : " + instance);
         });
 
     return next();
@@ -1539,6 +1563,7 @@ server.get('/DVP/API/:version/SystemRegistry/Node/:uuid', function(req, res, nex
             res.write(instance);
 
             res.end();
+            logger.debug("DVP-SystemRegistry.GetNode - Response : " + instance);
 
         }).catch(function(err)
         {
@@ -1547,6 +1572,51 @@ server.get('/DVP/API/:version/SystemRegistry/Node/:uuid', function(req, res, nex
             var instance = msg.FormatMessage(err, "Get GetNode failed", false, undefined);
             res.write(instance);
             res.end();
+            logger.debug("DVP-SystemRegistry.GetNode - Response : " + instance);
+        });
+
+    return next();
+
+});
+
+server.get('/DVP/API/:version/SystemRegistry/NodeByInstanceId/:uuid', function(req, res, next){
+
+
+    logger.debug("DVP-SystemRegistry.NodeByInstanceId HTTP  ");
+
+
+    dbModel.SwarmDockerInstance.find({where: [{UUID: req.params.uuid}],include: [{model: dbModel.SwarmNode, as :"SwarmNode"}]})
+        .then(function (ins)
+        {
+            logger.debug("DVP-SystemRegistry.NodeByInstanceId Instance Found ");
+
+            if(ins && ins.SwarmNode)
+            {
+                var instance = msg.FormatMessage(undefined, "Get NodeByInstanceId done", true, ins.SwarmNode);
+                res.write(instance);
+
+                res.end();
+                logger.debug("DVP-SystemRegistry.NodeByInstanceId - Response : " + instance);
+            }
+            else
+            {
+                var instance = msg.FormatMessage(undefined, "Get NodeByInstanceId done", true, undefined);
+                res.write(instance);
+
+                res.end();
+                logger.debug("DVP-SystemRegistry.NodeByInstanceId - Response : " + instance);
+            }
+
+
+
+        }).catch(function(err)
+        {
+            logger.error("DVP-SystemRegistry.NodeByInstanceId Failed", err);
+
+            var instance = msg.FormatMessage(err, "Get NodeByInstanceId failed", false, undefined);
+            res.write(instance);
+            res.end();
+            logger.debug("DVP-SystemRegistry.NodeByInstanceId - Response : " + instance);
         });
 
     return next();
@@ -1572,7 +1642,7 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                     logger.debug("DVP-SystemRegistr.AddNode cluster Found ");
 
                 var nodeInf = dbModel.SwarmNode.build({
-                    UniqueId: node.UniqueId,
+                    UUID: node.UUID,
                     Name: node.Name,
                     Code: node.Code,
                     Company: 1,
@@ -1604,6 +1674,7 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                                 var instance = msg.FormatMessage(undefined, "Add Node", status, undefined);
                                 res.write(instance);
                                 res.end();
+                                logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
 
 
                             }).catch(function(err)
@@ -1613,6 +1684,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                                 res.end();
 
                                 logger.error("DVP-SystemRegistr.AddNode Node Save Failed ",err);
+
+                                logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
                             });
                     }).catch(function(err)
                     {
@@ -1621,6 +1694,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                         res.end();
 
                         logger.error("DVP-SystemRegistr.AddNode Node Save Failed ",err);
+
+                        logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
 
                     })
             }
@@ -1631,6 +1706,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                 res.write(instance);
                 res.end();
 
+                logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
+
             }
 
         }).catch(function(err)
@@ -1639,6 +1716,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
                 var instance = msg.FormatMessage(err, "Add Node", status, undefined);
                 res.write(instance);
                 res.end();
+
+                logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
             })
 
 
@@ -1650,6 +1729,8 @@ server.post('/DVP/API/:version/SystemRegistry/Node', function(req, res, next)
         res.write(instance);
         res.end();
         logger.debug("DVP-SystemRegistr.AddNode Object Validation Failed ");
+
+        logger.debug("DVP-SystemRegistry.AddNode - Response : " + instance);
 
     }
 
@@ -1683,6 +1764,8 @@ server.get('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next)
 
         res.end();
 
+        logger.debug("DVP-SystemRegistry.GetInstances - Response : " + instance);
+
     }).catch(function(err)
     {
         logger.error("DVP-SystemRegistry.GetInstances Failed", err);
@@ -1690,33 +1773,42 @@ server.get('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next)
         var instance = msg.FormatMessage(err, "Get Instances failed", false, undefined);
         res.write(instance);
         res.end();
+
+        logger.debug("DVP-SystemRegistry.GetInstances - Response : " + instance);
     });
 
     return next();
 
 });
 
-server.get('/DVP/API/:version/SystemRegistry/InstanceByID/:id', function(req, res, next){
+server.get('/DVP/API/:version/SystemRegistry/InstanceById/:id', function(req, res, next){
 
 
-    logger.debug("DVP-SystemRegistry.GetInstanceByID HTTP  ");
+    logger.debug("DVP-SystemRegistry.GetInstanceById HTTP  ");
 
-    dbModel.SwarmDockerInstance.findAll({where: [{UUID: req.params.id}]}).then(function (inst)
+    dbModel.SwarmDockerInstance.find({where: [{UUID: req.params.id}]}).then(function (inst)
     {
-        logger.debug("DVP-SystemRegistry.GetInstanceByID Found ");
+        logger.debug("DVP-SystemRegistry.GetInstanceById Found ");
 
         var instance = msg.FormatMessage(undefined, "Get InstanceByID done", true, inst);
         res.write(instance);
 
         res.end();
 
+        logger.debug("DVP-SystemRegistry.GetInstanceById - Response : " + instance);
+
     }).catch(function(err)
     {
-        logger.error("DVP-SystemRegistry.GetInstanceByID Failed", err);
+        logger.error("DVP-SystemRegistry.GetInstanceById Failed", err);
 
-        var instance = msg.FormatMessage(err, "Get InstanceByID failed", false, undefined);
+        var instance = msg.FormatMessage(err, "GetInstanceById failed", false, undefined);
         res.write(instance);
         res.end();
+
+        logger.debug("DVP-SystemRegistry.GetInstanceById" +
+        "" +
+        "" +
+        " - Response : " + instance);
     });
 
     return next();
@@ -1734,7 +1826,7 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
     if(instanceInfo)
     {
 
-        dbModel.SwarmNode.find({where: [{ UniqueId: instanceInfo.SwarmNodeUuid}]}).then(function(nodeInfo)
+        dbModel.SwarmNode.find({where: [{ UUID: instanceInfo.SwarmNodeUuid}]}).then(function(nodeInfo)
         {
             if(nodeInfo)
             {
@@ -1749,7 +1841,10 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                     Tenant: 1,
                     Class: instanceInfo.Class,
                     Type: instanceInfo.Type,
-                    Category: instanceInfo.Category
+                    Category: instanceInfo.Category,
+                    FrontEnd: instanceInfo.FrontEnd,
+                    BackEnd: instanceInfo.BackEnd,
+                    DeploymentUUID: instanceInfo.DeploymentUUID
 
                 });
 
@@ -1780,7 +1875,7 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                                             .save()
                                             .then(function (rslt)
                                             {
-                                                inst.addEnv(swarmEnvVar).then(function(evRes)
+                                                inst.addEnvs(swarmEnvVar).then(function(evRes)
                                                 {
 
                                                 }).catch(function(ex)
@@ -1802,6 +1897,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                                 res.write(instance);
                                 res.end();
 
+                                logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
+
                             })
                                 .catch(function(err)
                                 {
@@ -1810,6 +1907,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                                     res.end();
 
                                     logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
+
+                                    logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
                                 });
                     }
                 ).catch(function(err)
@@ -1819,6 +1918,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                         res.end();
 
                         logger.error("DVP-SystemRegistr.AddInstance Instance Save Failed ",err);
+
+                        logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
                     })
             }
             else
@@ -1828,6 +1929,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
                 res.write(instance);
                 res.end();
 
+                logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
+
             }
 
         }).catch(function(err)
@@ -1836,6 +1939,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
             var instance = msg.FormatMessage(err, "Exception occurred", status, undefined);
             res.write(instance);
             res.end();
+
+            logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
         })
 
 
@@ -1848,6 +1953,8 @@ server.post('/DVP/API/:version/SystemRegistry/Instance', function(req, res, next
         var instance = msg.FormatMessage(undefined, "Empty Body", status, undefined);
         res.write(instance);
         res.end();
+
+        logger.debug("DVP-SystemRegistry.AddInstance - Response : " + instance);
 
     }
 
@@ -1863,7 +1970,6 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
 
     var instanceId = req.params.id;
     var status = req.params.status;
-    var swarmNodeUuid = req.params.uuid;
 
     try
     {
@@ -1874,77 +1980,95 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
                 {
                     var updateData = {Status:status};
 
-                    if(swarmNodeUuid)
+                    var deploymentUuid = instance.DeploymentUUID;
+
+                    if(deploymentUuid)
                     {
                         instance.updateAttributes(updateData)
                             .then(function(updateData)
                             {
 
-                                Model.find({ UUID: swarmNodeUuid }, function(err, node)
+                                Model.findById({ _id: deploymentUuid }, function(err, node)
                                 {
                                     if(err)
                                     {
                                         logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
                                         var respMsg = msg.FormatMessage(err, "Get Node Health Monitor Fail", false, undefined);
                                         res.end(respMsg);
+
+                                        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
                                     }
                                     else
                                     {
-                                        if(node && node.length > 0)
+                                        if(node)
                                         {
 
-                                                    var ins = underscore.find(node[0]._doc.Instances, function (instnce)
+                                            var ins = underscore.find(node._doc.Instances, function (instnce)
+                                            {
+                                                return instnce.UUID == instanceId;
+                                            });
+
+                                            if (ins)
+                                            {
+                                                ins.Status = status;
+
+                                                var newModel = new Model(node);
+
+                                                Model.remove({_id: node._id}, function (err, remRslt)
+                                                {
+                                                    if (!err)
                                                     {
-                                                        return instnce.UUID == instanceId;
-                                                    });
-
-                                                    if(ins)
-                                                    {
-                                                        ins.Status = status;
-
-                                                        var newModel = new Model(node[0]);
-
-                                                        Model.remove({ _id: node[0]._id }, function(err, remRslt)
+                                                        newModel.save(function (err, rslt)
                                                         {
-                                                            if(!err)
+                                                            if (err)
                                                             {
-                                                                newModel.save(function(err, rslt)
-                                                                {
-                                                                    if(err)
-                                                                    {
-                                                                        logger.error("DVP-SystemRegistry.HealthMonitor.Node - Error occurred", err);
-                                                                        var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
-                                                                        res.end(respMsg);
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Success");
-                                                                        var respMsg = msg.FormatMessage(undefined, "Save Node Health Monitor Success", true, rslt);
-                                                                        res.end(respMsg);
-                                                                    }
+                                                                logger.error("DVP-SystemRegistry.HealthMonitor.Node - Error occurred", err);
+                                                                var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                                res.end(respMsg);
 
-                                                                })
+                                                                logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
                                                             }
                                                             else
                                                             {
-                                                                logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
-                                                                var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
+                                                                logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Success");
+                                                                var respMsg = msg.FormatMessage(undefined, "Save Node Health Monitor Success", true, rslt);
                                                                 res.end(respMsg);
+
+                                                                logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
                                                             }
-                                                        });
 
-
+                                                        })
                                                     }
                                                     else
                                                     {
                                                         logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
-                                                        var respMsg = msg.FormatMessage(new Error('Instance not found'), "Save Node Health Monitor Fail", false, undefined);
+                                                        var respMsg = msg.FormatMessage(err, "Save Node Health Monitor Fail", false, undefined);
                                                         res.end(respMsg);
+
+                                                        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
                                                     }
+                                                });
+
+
+                                            }
+                                            else
+                                            {
+                                                logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                                var respMsg = msg.FormatMessage(new Error('Instance not found'), "Save Node Health Monitor Fail", false, undefined);
+                                                res.end(respMsg);
+
+                                                logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
+                                            }
 
                                         }
+                                        else
+                                        {
+                                            logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                            var respMsg = msg.FormatMessage(new Error('Node not found'), "Save Node Health Monitor Fail", false, undefined);
+                                            res.end(respMsg);
 
-
+                                            logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + respMsg);
+                                        }
 
                                     }
                                 });
@@ -1955,13 +2079,17 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
                                 var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
                                 res.write(instance);
                                 res.end();
+
+                                logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + instance);
                             })
                     }
                     else
                     {
-                        var instance = msg.FormatMessage(new Error('Node uuid not provided'), "Update Instance State", false, undefined);
+                        var instance = msg.FormatMessage(new Error('Deployment uuid not found'), "Update Instance State", false, undefined);
                         res.write(instance);
                         res.end();
+
+                        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + instance);
                     }
 
 
@@ -1971,6 +2099,8 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
                     var instance = msg.FormatMessage(new Error('Instance not found'), "Update Instance State", false, undefined);
                     res.write(instance);
                     res.end();
+
+                    logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + instance);
                 }
             })
             .catch(function(err)
@@ -1978,6 +2108,8 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
                 var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
                 res.write(instance);
                 res.end();
+
+                logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + instance);
             });
     }
     catch(ex)
@@ -1985,7 +2117,11 @@ server.put('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id/Status/:sta
         var instance = msg.FormatMessage(err, "Update Instance State", false, undefined);
         res.write(instance);
         res.end();
+
+        logger.debug("DVP-SystemRegistry.HealthMonitor.GetNode - Response : " + instance);
     }
+
+    return next();
 });
 
 server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(req, res, next)
@@ -1993,7 +2129,6 @@ server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(
     try
     {
         var instanceId = req.params.id;
-        var swarmNodeUuid = req.params.uuid;
 
         logger.debug('[DVP-SystemRegistry.DeleteInstanceByID] - HTTP Request Received - Req Params - InstanceId : %s', instanceId);
 
@@ -2005,26 +2140,30 @@ server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(
                 {
                     logger.debug("[DVP-SystemRegistry.DeleteInstanceByID] - Instance found");
 
-                    instance.destroy().then(function (result)
+                    var deploymentUUID = instance.DeploymentUUID;
+
+                    if(deploymentUUID)
                     {
-                        Model.find({ UUID: swarmNodeUuid }, function(err, node)
+                        instance.destroy().then(function (result)
                         {
-                            if(err)
+                            Model.findById({ _id: deploymentUUID }, function(err, node)
                             {
-                                logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
-                                var respMsg = msg.FormatMessage(err, "Get Node Health Monitor Fail", false, undefined);
-                                res.end(respMsg);
-                            }
-                            else
-                            {
-                                if(node && node.length > 0)
+                                if(err)
                                 {
+                                    logger.error("DVP-SystemRegistry.HealthMonitor.GetNode - Error occurred", err);
+                                    var respMsg = msg.FormatMessage(err, "Get Node Health Monitor Fail", false, undefined);
+                                    res.end(respMsg);
+                                }
+                                else
+                                {
+                                    if(node)
+                                    {
                                         var itemToRemove = -1;
-                                        for(var i = 0; i < node[0]._doc.Instances.length; i++)
+                                        for(var i = 0; i < node._doc.Instances.length; i++)
                                         {
-                                            if(node[0]._doc.Instances[i].UUID === instanceId)
+                                            if(node._doc.Instances[i].UUID === instanceId)
                                             {
-                                                node[0]._doc.Instances.splice(i, 1);
+                                                node._doc.Instances.splice(i, 1);
                                                 itemToRemove = i;
                                                 break;
                                             }
@@ -2032,9 +2171,9 @@ server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(
 
                                         if(itemToRemove > -1)
                                         {
-                                            var newModel = new Model(node[0]);
+                                            var newModel = new Model(node);
 
-                                            Model.remove({ _id: node[itemToRemove]._id }, function(err, remRslt)
+                                            Model.remove({ _id: swarmNodeUuid }, function(err, remRslt)
                                             {
                                                 if(!err)
                                                 {
@@ -2072,21 +2211,36 @@ server.del('/DVP/API/:version/SystemRegistry/Node/:uuid/Instance/:id', function(
                                             res.end(respMsg);
                                         }
 
+                                    }
+                                    else
+                                    {
+                                        logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                                        var respMsg = msg.FormatMessage(new Error('Node not found'), "Save Node Health Monitor Fail", false, undefined);
+                                        res.end(respMsg);
+                                    }
+
+
+
                                 }
+                            });
 
 
+                        }).catch(function(err)
+                        {
+                            logger.error("[DVP-SystemRegistry.DeleteInstanceByID] - Error deleting", err);
 
-                            }
+                            var respRes = msg.FormatMessage(err, "Instance delete error", false, undefined);
+                            res.end(respRes);
                         });
-
-
-                    }).catch(function(err)
+                    }
+                    else
                     {
-                        logger.error("[DVP-SystemRegistry.DeleteInstanceByID] - Error deleting", err);
+                        logger.debug("DVP-SystemRegistry.HealthMonitor.Node - Fail");
+                        var respMsg = msg.FormatMessage(new Error('Deployment UUID not found'), "Save Node Health Monitor Fail", false, undefined);
+                        res.end(respMsg);
+                    }
 
-                        var respRes = msg.FormatMessage(err, "Instance delete error", false, undefined);
-                        res.end(respRes);
-                    });
+
                 }
                 else
                 {
