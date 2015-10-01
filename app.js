@@ -18,6 +18,7 @@ var hostVersion = config.Host.Version;
 
 var mongoDbIp = config.MongoDB.Ip;
 var mongoDbDb = config.MongoDB.Database;
+var mongoDbPort = config.MongoDB.Port;
 
 var server = restify.createServer({
     name: 'localhost',
@@ -33,7 +34,7 @@ server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
 
-var mongoUrl = 'mongodb://' + mongoDbIp + '/' + mongoDbDb;
+var mongoUrl = 'mongodb://' + mongoDbIp + ':' + mongoDbPort + '/' + mongoDbDb;
 
 var conn = mongoose.connect(mongoUrl);
 

@@ -17,6 +17,7 @@ module.exports = {
 
     "MongoDB":{
         "Ip":"SYS_MONGODB_IP",
+        "Port":"SYS_MONGODB_PORT",
         "Database":"SYS_MONGODB_DB"
     }
 };
