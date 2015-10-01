@@ -15,7 +15,7 @@ module.exports = {
   },
 
   "MongoDB":{
-    "Ip":"localhost",
+    "Ip":"192.168.0.89",
     "Database":"dvpdb"
   }
 };
