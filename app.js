@@ -759,7 +759,7 @@ server.post('/DVP/API/:version/SystemRegistry/Image/:imageName/DependOn/:dependI
                             {
                                 logger.debug("DVP-SystemRegistry.ImageDependsOn Service Saved ");
 
-                                imageInstance.addDependants(depimageInstance, {DependantId: depimageInstance.id})
+                                imageInstance.addDependants(depimageInstance, {DependantId: imageInstance.id})
                                     .then(function (depimageInstancex)
                                     {
                                         logger.debug("DVP-SystemRegistry.ImageDependsOn Service Set Image");
