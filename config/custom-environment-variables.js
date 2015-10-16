@@ -10,7 +10,7 @@ module.exports = {
     },
 
     "Host":{
-        "Ip":"HOST_IP",
+        "Ip":"HOST_NAME",
         "Port":"HOST_SYSTEMREGISTRY_PORT",
         "Version":"HOST_VERSION"
     },
