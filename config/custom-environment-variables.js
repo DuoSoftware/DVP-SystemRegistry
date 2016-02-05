@@ -10,13 +10,13 @@ module.exports = {
     },
 
     "Host":{
-        "Ip":"HOST_IP",
+        "Ip":"HOST_NAME",
         "Port":"HOST_SYSTEMREGISTRY_PORT",
         "Version":"HOST_VERSION"
     },
 
     "MongoDB":{
-        "Ip":"SYS_MONGODB_IP",
+        "Ip":"SYS_MONGODB_HOST",
         "Port":"SYS_MONGODB_PORT",
         "Database":"SYS_MONGODB_DB"
     }
