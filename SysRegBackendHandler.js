@@ -5,17 +5,16 @@ var GetBaseServiceDetails = function(reqId, callback)
     try
     {
         dbModel.BaseService.findAll()
-            .complete(function (err, baseServiceList)
+            .then(function ( baseServiceList)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
+
                     logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, baseServiceList);
+
+                callback(undefined, baseServiceList);
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
             });
 
     }
@@ -30,17 +29,19 @@ var GetExtendedServiceDetails = function(reqId, callback)
     try
     {
         dbModel.ExtendedService.findAll()
-            .complete(function (err, extServiceList)
+            .then(function (extServiceList)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
+
+
+
                     logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, extServiceList);
+
+                callback(undefined, extServiceList);
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
+
             });
 
     }
@@ -55,23 +56,25 @@ var GetAttachedServiceDetails = function(reqId, callback)
     try
     {
         dbModel.AttachedService.findAll()
-            .complete(function (err, attServiceList)
+            .then(function (attServiceList)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
-                    logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, attServiceList);
+
+
+                logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                callback(undefined, attServiceList);
+
+
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
+
             });
 
     }
     catch(ex)
     {
-        callback(ex, []);
+        callback(ex, {});
     }
 };
 
@@ -80,17 +83,18 @@ var GetServiceRegistryDeploymentInfo = function(reqId, serviceName, callback)
     try
     {
         dbModel.ServiceDeploymentDistribution.findAll({where: [{ServiceName: serviceName}]})
-            .complete(function (err, serviceInfoList)
+            .then(function ( serviceInfoList)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
-                    logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, serviceInfoList);
+
+                logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                callback(undefined, serviceInfoList);
+
+
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
+
             });
 
     }
@@ -106,48 +110,56 @@ var AddBaseServiceToAttached = function(reqId, baseServiceId, attachedServiceId,
     {
         {
             dbModel.BaseService.find({where: [{id: baseServiceId}]})
-                .complete(function (err, baseService) {
-                    if (err && !baseService) {
-                        if (err) {
-                            logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                        }
-                        else {
-                            logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                        }
-                        callback(err, false);
+                .then(function (baseService) {
+                    if (!baseService) {
+
+                        //logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                        //callback(err, false);
+                    logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+                    callback(new Error('Base service not found'), false);
+
                     }
                     else {
                         dbModel.AttachedService.find({where: [{id: attachedServiceId}]})
-                            .complete(function (err, attService) {
-                                if (err && !attService) {
-                                    if (err) {
-                                        logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                                    }
-                                    else {
-                                        logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                                    }
-                                    callback(err, false);
+                            .then(function (attService) {
+                                if (!attService) {
+
+                                    //callback(err, false);
+                                    //logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+
+                                    logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
+
+                                    callback(new Error('attached service not found'), false);
                                 }
                                 else {
-                                    baseService.addAttachedService(attService).complete(function (err, result) {
-                                        if (!err) {
+                                    baseService.addAttachedService(attService).then(function (result) {
+
                                             callback(undefined, true);
-                                        }
-                                        else {
-                                            if (err) {
-                                                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
-                                            }
-                                            else {
-                                                logger.debug('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query success', reqId);
-                                            }
-                                            callback(err, true);
-                                        }
+
+
+                                    }).catch(function(err){
+
+                                        callback(err, false);
+                                        logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+
+
 
                                     });
                                 }
 
+                            }).catch(function(err){
+
+                                callback(err, false);
+                                logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+
+
                             });
                     }
+
+                }).catch(function(err){
+
+                    logger.error('[DVP-SystemRegistry.GetBaseServiceDetails] - [%s] - PGSQL query failed', reqId, err);
+                    callback(err, false);
 
                 });
 
@@ -156,7 +168,7 @@ var AddBaseServiceToAttached = function(reqId, baseServiceId, attachedServiceId,
     }
     catch(ex)
     {
-        callback(ex, true);
+        callback(ex, false);
     }
 };
 
@@ -165,70 +177,63 @@ var AddExtendedServiceToAttached = function(reqId, extServiceId, attachedService
     try
     {
         dbModel.ExtendedService.find({where: [{id: extServiceId}]})
-            .complete(function (err, extService)
+            .then(function ( extService)
             {
-                if(err && !extService)
+                if(!extService)
                 {
-                    if(err)
-                    {
-                        logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
-                    }
-                    else
-                    {
-                        logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success', reqId);
-                    }
-                    callback(err, false);
+
+                    logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success', reqId);
+                    callback(new Error('No Extended service found'), false);
                 }
                 else
                 {
                     dbModel.AttachedService.find({where: [{id: attachedServiceId}]})
-                        .complete(function (err, attService)
+                        .then(function (attService)
                         {
-                            if(err && !attService)
+                            if(!attService)
                             {
-                                if(err)
-                                {
-                                    logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
-                                }
-                                else
-                                {
-                                    logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success', reqId);
-                                }
-                                callback(err, false);
+
+                                logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success No item found', reqId);
+                                callback(new Error('No attached service found'), false);
                             }
                             else
                             {
-                                extService.addAttachedService(attService).complete(function (err, result)
+                                extService.addAttachedService(attService).then(function (result)
                                 {
-                                    if(!err)
-                                    {
-                                        callback(undefined, true);
-                                    }
-                                    else
-                                    {
-                                        if(err)
-                                        {
-                                            logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
-                                        }
-                                        else
-                                        {
-                                            logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success', reqId);
-                                        }
-                                        callback(err, true);
-                                    }
+
+                                    logger.debug('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query success', reqId);
+                                    callback(undefined, true);
+
+
+                                }).catch(function(err){
+
+                                    logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
+                                    callback(err, false);
+
 
                                 });
                             }
 
+                        }).catch(function(err){
+
+                            logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
+                            callback(err, false);
+
+
                         });
                 }
+
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.AddExtendedServiceToAttached] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, false);
 
             });
 
     }
     catch(ex)
     {
-        callback(ex, true);
+        callback(ex, false);
     }
 };
 
@@ -237,63 +242,56 @@ var AddBaseServiceToExtended = function(reqId, baseServiceId, extendedServiceId,
     try
     {
         dbModel.BaseService.find({where: [{id: baseServiceId}]})
-            .complete(function (err, baseService)
+            .then(function (baseService)
             {
-                if(err && !baseService)
+                if(!baseService)
                 {
-                    if(err)
-                    {
-                        logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                    }
-                    else
-                    {
-                        logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                    }
-                    callback(err, false);
+
+                    logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
+                    callback(new Error('Base service not found'), false);
                 }
                 else
                 {
                     dbModel.ExtendedService.find({where: [{id: extendedServiceId}]})
-                        .complete(function (err, extService)
+                        .then(function (extService)
                         {
-                            if(err && !extService)
+                            if(!extService)
                             {
-                                if(err)
-                                {
-                                    logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                                }
-                                else
-                                {
-                                    logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                                }
-                                callback(err, false);
+                                logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success no extended item found', reqId);
+                                callback(new Error('Extended service not found'), false);
                             }
                             else
                             {
-                                extService.addBaseService(baseService).complete(function (err, result)
+                                extService.addBaseService(baseService).then(function (result)
                                 {
-                                    if(!err)
-                                    {
-                                        callback(undefined, true);
-                                    }
-                                    else
-                                    {
-                                        if(err)
-                                        {
-                                            logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                                        }
-                                        else
-                                        {
-                                            logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                                        }
-                                        callback(err, true);
-                                    }
+
+                                    logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
+                                    callback(undefined, true);
+
+
+
+                                }).catch(function(err){
+
+
+                                    logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                                    callback(err, false);
 
                                 });
                             }
 
+                        }).catch(function(err){
+
+                            logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                            callback(err, false);
+
                         });
                 }
+
+            }).catch(function(err){
+
+
+                logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, false);
 
             });
 
@@ -310,31 +308,26 @@ var AddSystemService = function(reqId, serviceInfo, callback)
     {
         serviceInfo
             .save()
-            .complete(function (err) {
+            .then(function (item) {
                 try {
-                    if (err)
-                    {
-                        if(err)
-                        {
-                            logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                        }
-                        else
-                        {
-                            logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                        }
-                        callback(err, false);
-                    }
-                    else
-                    {
+
+
+                        logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
                         callback(undefined, true);
-                    }
+
                 }
                 catch (ex)
                 {
                     callback(ex, false);
                 }
 
-            })
+            }).catch(function(err){
+
+
+                logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, false);
+
+            });
     }
     catch(ex)
     {
@@ -348,17 +341,16 @@ var GetBaseServiceDetailsById = function(reqId, baseServiceId, callback)
     try
     {
         dbModel.BaseService.find({where: [{id: baseServiceId}], include : [{model: dbModel.AttachedService, as: "AttachedService"}]})
-            .complete(function (err, serviceInfo)
+            .then(function ( serviceInfo)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
-                    logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, serviceInfo);
+
+                logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
+                callback(undefined, serviceInfo);
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
+
             });
 
     }
@@ -374,17 +366,17 @@ var GetExtendedServiceDetailsById = function(reqId, extServiceId, callback)
     try
     {
         dbModel.ExtendedService.find({where: [{id: extServiceId}], include : [{model: dbModel.BaseService, as: "BaseService"}], include: [{model: dbModel.AttachedService, as: "AttachedService"}]})
-            .complete(function (err, serviceInfo)
+            .then(function (serviceInfo)
             {
-                if(err)
-                {
-                    logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
-                }
-                else
-                {
-                    logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
-                }
-                callback(err, serviceInfo);
+
+                logger.debug('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query success', reqId);
+                callback(undefined, serviceInfo);
+
+            }).catch(function(err){
+
+                logger.error('[DVP-SystemRegistry.AddBaseServiceToExtended] - [%s] - PGSQL query failed', reqId, err);
+                callback(err, undefined);
+
             });
 
     }
