@@ -4,8 +4,8 @@
   "description": "System services information metadata",
   "main": "app.js",
   "dependencies": {
-    "DVP-DBModels": "DuoSoftware/DVP-DBModels",
-    "dvp-common": "^0.8.4",
+    "db-models": "2.1.0",
+    "dvp-common": "1.1.0",
     "config": "^1.12.0",
     "restify": "^3.0.2",
     "stringify": "^3.1.0"
